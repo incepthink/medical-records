@@ -32,7 +32,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <BrowserRouter>
+              <BrowserRouter basename="/examples/medical-records">
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/auth/:persona" element={<AuthPage />} />

@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/examples/medical-records/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/examples/medical-records/:path*", "destination": "/index.html" },
+    { "source": "/examples/medical-records", "destination": "/index.html" }
+  ]
+}
