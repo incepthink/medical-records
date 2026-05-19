@@ -129,8 +129,8 @@ const DoctorCollections = () => {
                   icon: FileText,
                   label: "Add Records",
                   sub: "Mint records into the collection",
-                  color: "text-success",
-                  bg: "bg-success/10",
+                  color: "text-primary",
+                  bg: "bg-primary/10",
                 },
               ].map((step, i) => (
                 <div key={step.label} className="flex sm:flex-row items-center gap-0">

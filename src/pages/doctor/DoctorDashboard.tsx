@@ -61,9 +61,9 @@ const DoctorDashboard = () => {
       label: "Patients Treated",
       value: uniquePatients,
       icon: Users,
-      color: "text-success",
-      bg: "bg-success/10",
-      border: "border-l-success",
+      color: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-l-primary",
       trend: "Unique wallets",
       trendIcon: Activity,
     },
@@ -71,9 +71,9 @@ const DoctorDashboard = () => {
       label: "Records This Month",
       value: thisMonth,
       icon: CalendarDays,
-      color: "text-warning",
-      bg: "bg-warning/10",
-      border: "border-l-warning",
+      color: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-l-primary",
       trend: new Date().toLocaleString("default", { month: "long" }),
       trendIcon: Sparkles,
     },
@@ -111,9 +111,9 @@ const DoctorDashboard = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero Banner */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-success/5 border border-border p-8">
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-border p-8">
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-success/5 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="w-16 h-16 rounded-full bg-primary/15 border-2 border-primary/20 flex items-center justify-center shrink-0">
@@ -198,15 +198,15 @@ const DoctorDashboard = () => {
                     icon: FileText,
                     label: "Record",
                     sub: "Minted as NFT",
-                    color: "text-warning",
-                    bg: "bg-warning/10",
+                    color: "text-primary",
+                    bg: "bg-primary/10",
                   },
                   {
                     icon: Users,
                     label: "Patient",
                     sub: "Receives in wallet",
-                    color: "text-success",
-                    bg: "bg-success/10",
+                    color: "text-primary",
+                    bg: "bg-primary/10",
                   },
                 ].map((step, i) => (
                   <div key={step.label} className="flex sm:flex-row items-center gap-0">
@@ -257,8 +257,8 @@ const DoctorDashboard = () => {
                       <Badge
                         className={`absolute top-3 right-3 text-xs ${
                           rec.status === "minted"
-                            ? "bg-success text-success-foreground"
-                            : "bg-warning text-warning-foreground"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-primary text-primary-foreground"
                         }`}
                       >
                         {rec.status === "minted" ? "Minted ✓" : "Pending"}

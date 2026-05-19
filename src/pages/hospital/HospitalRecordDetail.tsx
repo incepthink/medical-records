@@ -113,8 +113,8 @@ const HospitalRecordDetail = () => {
       <div className="flex items-center justify-center min-h-[60vh] animate-scale-in">
         <Card className="w-full max-w-md bg-card border border-border shadow-sm rounded-xl">
           <CardContent className="p-12 flex flex-col items-center text-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="h-10 w-10 text-success" />
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="h-10 w-10 text-primary" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">
@@ -150,7 +150,7 @@ const HospitalRecordDetail = () => {
   const HeroBanner = () => (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/10 p-8">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-32 translate-x-32 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-success/5 rounded-full translate-y-24 -translate-x-24 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full translate-y-24 -translate-x-24 blur-3xl pointer-events-none" />
       <div className="relative">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -175,8 +175,8 @@ const HospitalRecordDetail = () => {
           <Badge
             className={`gap-1.5 text-xs ${
               isSigned
-                ? "bg-success text-success-foreground"
-                : "bg-warning/10 text-warning border border-warning/20"
+                ? "bg-primary text-primary-foreground"
+                : "bg-primary/10 text-primary border border-primary/20"
             }`}
           >
             {isSigned ? (
@@ -205,8 +205,8 @@ const HospitalRecordDetail = () => {
           <Card className="w-full max-w-xl bg-card border border-border shadow-sm rounded-xl">
             <CardContent className="p-8 space-y-6">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-warning/10 flex items-center justify-center shrink-0">
-                  <Lock className="h-7 w-7 text-warning" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Lock className="h-7 w-7 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-foreground">
@@ -294,7 +294,7 @@ const HospitalRecordDetail = () => {
                 className="w-full h-64 md:h-80 object-cover hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute top-3 right-3">
-                <Badge className="bg-success text-success-foreground gap-1.5 shadow">
+                <Badge className="bg-primary text-primary-foreground gap-1.5 shadow">
                   <ShieldCheck className="h-3 w-3" /> Verified ✓
                 </Badge>
               </div>
@@ -385,11 +385,11 @@ const HospitalRecordDetail = () => {
         {/* Right col */}
         <div className="space-y-5">
           {/* Verification Proof */}
-          <Card className="bg-card border border-l-4 border-l-success border-border shadow-sm rounded-xl">
+          <Card className="bg-card border border-l-4 border-l-primary border-border shadow-sm rounded-xl">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                  <ShieldCheck className="h-4 w-4 text-success" />
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
                 </div>
                 <CardTitle className="text-base">Verification Proof</CardTitle>
               </div>
@@ -421,7 +421,7 @@ const HospitalRecordDetail = () => {
                   </p>
                 </div>
               </div>
-              <Badge className="bg-success text-success-foreground gap-1.5 w-full justify-center">
+              <Badge className="bg-primary text-primary-foreground gap-1.5 w-full justify-center">
                 <ShieldCheck className="h-3.5 w-3.5" /> Identity Verified ✓
               </Badge>
             </CardContent>

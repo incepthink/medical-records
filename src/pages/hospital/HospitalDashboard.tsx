@@ -59,7 +59,7 @@ const HospitalDashboard = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/10 p-8">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-background to-success/5 border border-border p-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-32 translate-x-32 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full translate-y-24 -translate-x-24 blur-3xl pointer-events-none" />
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-6">
@@ -72,16 +72,16 @@ const HospitalDashboard = () => {
             </div>
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-gradient">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gradient">
               Hospital Records Portal
             </h1>
-            <p className="text-muted-foreground mt-1 max-w-xl">
+            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
               Patients have shared these medical records with your institution.
               Verify your identity with your wallet to access full record details.
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <Badge variant="secondary" className="gap-1.5 text-xs">
-                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 Base Sepolia
               </Badge>
               <Badge variant="secondary" className="gap-1.5 text-xs">
@@ -100,31 +100,31 @@ const HospitalDashboard = () => {
               <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Records Shared</p>
+              <p className="text-sm text-muted-foreground">Records Shared</p>
               <p className="text-3xl font-extrabold text-foreground">
                 {sharedRecordsForHospital.length}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border border-border border-l-4 border-l-success shadow-sm rounded-xl">
+        <Card className="bg-card border border-border border-l-4 border-l-primary shadow-sm rounded-xl">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-6 w-6 text-success" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Verified</p>
+              <p className="text-sm text-muted-foreground">Verified</p>
               <p className="text-3xl font-extrabold text-foreground">{verifiedCount}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border border-border border-l-4 border-l-warning shadow-sm rounded-xl">
+        <Card className="bg-card border border-border border-l-4 border-l-primary shadow-sm rounded-xl">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-              <Clock className="h-6 w-6 text-warning" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Clock className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Pending Verification</p>
+              <p className="text-sm text-muted-foreground">Pending Verification</p>
               <p className="text-3xl font-extrabold text-foreground">{pendingCount}</p>
             </div>
           </CardContent>
@@ -134,7 +134,7 @@ const HospitalDashboard = () => {
       {/* How It Works */}
       <Card className="bg-card border border-border shadow-sm rounded-xl">
         <CardContent className="p-6">
-          <h2 className="text-base font-semibold text-foreground mb-5">
+          <h2 className="text-lg font-semibold text-foreground mb-5">
             How It Works
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -150,16 +150,16 @@ const HospitalDashboard = () => {
               {
                 step: 2,
                 icon: Building2,
-                iconBg: "bg-warning/10",
-                iconColor: "text-warning",
+                iconBg: "bg-primary/10",
+                iconColor: "text-primary",
                 title: "You Receive",
                 desc: "The record appears here automatically. You can see basic info without verification.",
               },
               {
                 step: 3,
                 icon: ShieldCheck,
-                iconBg: "bg-success/10",
-                iconColor: "text-success",
+                iconBg: "bg-primary/10",
+                iconColor: "text-primary",
                 title: "Verify & View",
                 desc: "Connect your wallet and sign a challenge to prove identity and unlock the full record.",
               },
@@ -229,7 +229,7 @@ const HospitalDashboard = () => {
                 className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer overflow-hidden"
                 style={{
                   animationDelay: `${index * 0.08}s`,
-                  borderLeft: `3px solid ${rec.signed ? "hsl(var(--success))" : "hsl(var(--warning))"}`,
+                  borderLeft: `3px solid hsl(var(--primary))`,
                 }}
                 onClick={() => navigate(`/hospital/record/${rec.recordId}`)}
               >
@@ -239,11 +239,7 @@ const HospitalDashboard = () => {
                       {rec.title}
                     </h3>
                     <Badge
-                      className={`shrink-0 text-xs gap-1 ${
-                        rec.signed
-                          ? "bg-success text-success-foreground"
-                          : "bg-warning text-warning-foreground"
-                      }`}
+                      className={`shrink-0 text-xs gap-1 bg-primary text-primary-foreground`}
                     >
                       {rec.signed ? (
                         <>

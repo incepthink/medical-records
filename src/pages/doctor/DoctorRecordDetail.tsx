@@ -102,8 +102,8 @@ const DoctorRecordDetail = () => {
             <Badge
               className={`gap-1.5 ${
                 record.status === "minted"
-                  ? "bg-success text-success-foreground"
-                  : "bg-warning text-warning-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-primary text-primary-foreground"
               }`}
             >
               <ShieldCheck className="h-3 w-3" />

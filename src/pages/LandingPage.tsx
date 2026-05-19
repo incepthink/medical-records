@@ -45,9 +45,9 @@ const personas = [
     title: "Patient",
     tagline: "Own your health data, control access",
     route: "/auth/patient",
-    accentColor: "text-success",
-    accentBg: "bg-success/10",
-    borderHover: "hover:border-success/40",
+    accentColor: "text-primary",
+    accentBg: "bg-primary/10",
+    borderHover: "hover:border-primary/40",
     badgeVariant: "secondary" as const,
     capabilities: [
       { icon: Wallet, text: "Own all records issued to your wallet" },
@@ -61,9 +61,9 @@ const personas = [
     title: "Hospital",
     tagline: "Access records with cryptographic proof",
     route: "/auth/hospital",
-    accentColor: "text-warning",
-    accentBg: "bg-warning/10",
-    borderHover: "hover:border-warning/40",
+    accentColor: "text-primary",
+    accentBg: "bg-primary/10",
+    borderHover: "hover:border-primary/40",
     badgeVariant: "outline" as const,
     capabilities: [
       { icon: ShieldCheck, text: "View records patients have explicitly shared" },
@@ -90,8 +90,8 @@ const steps = [
     title: "Patient Controls",
     description:
       "The patient receives the record in their wallet and decides exactly which hospitals are allowed to view it.",
-    color: "text-success",
-    bg: "bg-success/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
   {
     number: "03",
@@ -99,8 +99,8 @@ const steps = [
     title: "Hospital Verifies",
     description:
       "The hospital accesses the record with a signed audit log — every view is cryptographically proven and immutable.",
-    color: "text-warning",
-    bg: "bg-warning/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
 ];
 
@@ -142,7 +142,7 @@ const LandingPage = () => {
         {/* Background blobs */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-[-80px] left-[-80px] w-[420px] h-[420px] rounded-full bg-primary/5 blur-3xl" />
-          <div className="absolute bottom-[-60px] right-[-60px] w-[320px] h-[320px] rounded-full bg-success/5 blur-3xl" />
+          <div className="absolute bottom-[-60px] right-[-60px] w-[320px] h-[320px] rounded-full bg-primary/5 blur-3xl" />
         </div>
 
         <div className="relative max-w-3xl text-center mb-10 animate-fade-in">

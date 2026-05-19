@@ -135,8 +135,8 @@ const CreateRecord = () => {
         {/* Success message */}
         <Card className="bg-card border border-border shadow-sm rounded-xl">
           <CardContent className="p-8 flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-10 w-10 text-success" />
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-10 w-10 text-primary" />
             </div>
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-2xl font-bold text-foreground">
@@ -173,7 +173,7 @@ const CreateRecord = () => {
               <p className="text-xs text-muted-foreground font-mono">
                 {truncateAddress(patientWallet)}
               </p>
-              <Badge className="bg-success text-success-foreground">
+              <Badge className="bg-primary text-primary-foreground">
                 Minted ✓
               </Badge>
             </CardContent>
@@ -345,8 +345,8 @@ const CreateRecord = () => {
               {/* Section 2: Attachment */}
               <div>
                 <div className="flex items-center gap-3 mb-4 mt-2">
-                  <div className="w-7 h-7 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-warning">2</span>
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-primary">2</span>
                   </div>
                   <h3 className="text-sm font-semibold text-foreground">
                     Attachment
@@ -412,8 +412,8 @@ const CreateRecord = () => {
               {/* Section 3: Collection */}
               <div>
                 <div className="flex items-center gap-3 mb-4 mt-2">
-                  <div className="w-7 h-7 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-success">3</span>
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-primary">3</span>
                   </div>
                   <h3 className="text-sm font-semibold text-foreground">
                     Collection
@@ -516,7 +516,7 @@ const CreateRecord = () => {
                     </p>
                   </div>
                 )}
-                <Badge className="absolute top-2 right-2 bg-success text-success-foreground text-xs">
+                <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs">
                   NFT
                 </Badge>
               </div>

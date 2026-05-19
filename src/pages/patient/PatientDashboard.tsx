@@ -88,9 +88,9 @@ const PatientDashboard = () => {
       label: "Shared Records",
       value: sharedRecordsCount,
       icon: Share2,
-      color: "text-success",
-      bg: "bg-success/10",
-      border: "border-l-success",
+      color: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-l-primary",
       trend: "With hospitals",
       trendIcon: Activity,
     },
@@ -98,9 +98,9 @@ const PatientDashboard = () => {
       label: "Hospitals with Access",
       value: totalHospitalsWithAccess,
       icon: Building2,
-      color: "text-warning",
-      bg: "bg-warning/10",
-      border: "border-l-warning",
+      color: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-l-primary",
       trend: "Unique hospitals",
       trendIcon: ShieldCheck,
     },
@@ -128,9 +128,9 @@ const PatientDashboard = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero Banner */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-success/5 border border-border p-8">
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-border p-8">
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-success/5 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="w-16 h-16 rounded-full bg-primary/15 border-2 border-primary/20 flex items-center justify-center shrink-0">
@@ -245,15 +245,15 @@ const PatientDashboard = () => {
                     icon: FileText,
                     label: "NFT Minted",
                     sub: "On Base Sepolia",
-                    color: "text-warning",
-                    bg: "bg-warning/10",
+                    color: "text-primary",
+                    bg: "bg-primary/10",
                   },
                   {
                     icon: User,
                     label: "You",
                     sub: "Receive & manage",
-                    color: "text-success",
-                    bg: "bg-success/10",
+                    color: "text-primary",
+                    bg: "bg-primary/10",
                   },
                 ].map((step, i) => (
                   <div key={step.label} className="flex items-center gap-4">
@@ -285,7 +285,7 @@ const PatientDashboard = () => {
             return (
               <Card
                 key={rec.id}
-                className={`bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group ${isShared ? "border-l-4 border-l-success" : ""}`}
+                className={`bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group ${isShared ? "border-l-4 border-l-primary" : ""}`}
                 style={{ animationDelay: `${index * 0.08}s` }}
                 onClick={() => navigate(`/patient/record/${rec.id}`)}
               >
@@ -297,7 +297,7 @@ const PatientDashboard = () => {
                       className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
-                      <Badge className="bg-success text-success-foreground text-xs">
+                      <Badge className="bg-primary text-primary-foreground text-xs">
                         On-chain ✓
                       </Badge>
                       {isShared && (

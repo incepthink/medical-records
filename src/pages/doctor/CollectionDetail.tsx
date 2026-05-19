@@ -10,7 +10,9 @@ import { truncateAddress, simulateDelay } from "@/mock/data";
 
 function parsePlaceholderColors(url: string) {
   const m = url.match(/placehold\.co\/\d+x\d+\/([^/]+)\/([^?]+)/);
-  return m ? { bg: `#${m[1]}`, text: `#${m[2]}` } : { bg: '#dbeafe', text: '#1d4ed8' };
+  return m
+    ? { bg: `#${m[1]}`, text: `#${m[2]}` }
+    : { bg: "#dbeafe", text: "#1d4ed8" };
 }
 
 const CollectionDetail = () => {
@@ -54,7 +56,9 @@ const CollectionDetail = () => {
           Collections
         </button>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium truncate">{collection.name}</span>
+        <span className="text-foreground font-medium truncate">
+          {collection.name}
+        </span>
       </nav>
 
       {/* Collection header banner */}
@@ -71,13 +75,19 @@ const CollectionDetail = () => {
               {collection.name}
             </h1>
             {collection.description && (
-              <p className="text-muted-foreground mt-1 text-sm">{collection.description}</p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {collection.description}
+              </p>
             )}
             <div className="flex items-center gap-2 mt-3">
               <Badge variant="secondary" className="rounded-full">
-                {colRecords.length} {colRecords.length === 1 ? "record" : "records"}
+                {colRecords.length}{" "}
+                {colRecords.length === 1 ? "record" : "records"}
               </Badge>
-              <Badge variant="outline" className="text-primary border-primary/40 rounded-full text-xs">
+              <Badge
+                variant="outline"
+                className="text-primary border-primary/40 rounded-full text-xs"
+              >
                 Base Sepolia
               </Badge>
             </div>
@@ -100,10 +110,12 @@ const CollectionDetail = () => {
               <FileText className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground text-lg">No records yet</h3>
+              <h3 className="font-semibold text-foreground text-lg">
+                No records yet
+              </h3>
               <p className="text-muted-foreground text-sm mt-1 max-w-xs">
-                This collection is empty. Create a medical record and assign it to{" "}
-                <strong>{collection.name}</strong> to get started.
+                This collection is empty. Create a medical record and assign it
+                to <strong>{collection.name}</strong> to get started.
               </p>
             </div>
             <Button onClick={() => navigate("/doctor/create-record")}>
@@ -114,44 +126,50 @@ const CollectionDetail = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {colRecords.map((rec) => {
-            const { bg: thumbBg, text: thumbText } = parsePlaceholderColors(rec.imageUrl);
+            const { bg: thumbBg, text: thumbText } = parsePlaceholderColors(
+              rec.imageUrl,
+            );
             return (
-            <Card
-              key={rec.id}
-              className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
-              onClick={() => navigate(`/doctor/record/${rec.id}`)}
-            >
-              <CardContent className="p-0">
-                <div className="relative">
-                  <div
-                    className="w-full h-44 flex items-center justify-center"
-                    style={{ backgroundColor: thumbBg }}
-                  >
-                    <span
-                      className="text-xl font-bold text-center px-6 leading-snug"
-                      style={{ color: thumbText }}
+              <Card
+                key={rec.id}
+                className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
+                onClick={() => navigate(`/doctor/record/${rec.id}`)}
+              >
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <div
+                      className="w-full h-44 flex items-center justify-center"
+                      style={{ backgroundColor: thumbBg }}
                     >
+                      <span
+                        className="text-xl font-bold text-center px-6 leading-snug"
+                        style={{ color: thumbText }}
+                      >
+                        {rec.title}
+                      </span>
+                    </div>
+                    <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs">
+                      Minted ✓
+                    </Badge>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-semibold text-foreground leading-snug">
                       {rec.title}
-                    </span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {truncateAddress(rec.patientWallet)}
+                    </p>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(rec.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-xs text-primary font-medium">
+                        View →
+                      </span>
+                    </div>
                   </div>
-                  <Badge className="absolute top-3 right-3 bg-success text-success-foreground text-xs">
-                    Minted ✓
-                  </Badge>
-                </div>
-                <div className="p-4 space-y-2">
-                  <h3 className="font-semibold text-foreground leading-snug">{rec.title}</h3>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {truncateAddress(rec.patientWallet)}
-                  </p>
-                  <div className="flex items-center justify-between pt-1 border-t border-border">
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(rec.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className="text-xs text-primary font-medium">View →</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             );
           })}
         </div>

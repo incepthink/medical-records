@@ -114,9 +114,9 @@ const PatientRecordDetail = () => {
       </div>
 
       {/* Hero Banner */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-success/5 border border-border p-6 md:p-8">
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-border p-6 md:p-8">
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-success/5 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
         <div className="relative">
           <h1 className="text-2xl md:text-3xl font-extrabold text-gradient leading-tight mb-3">
             {record.title}
@@ -136,7 +136,7 @@ const PatientRecordDetail = () => {
             <Badge variant="outline" className="gap-1.5">
               <Globe className="h-3 w-3" /> Base Sepolia
             </Badge>
-            <Badge className="bg-success text-success-foreground gap-1.5">
+            <Badge className="bg-primary text-primary-foreground gap-1.5">
               <ShieldCheck className="h-3 w-3" /> On-chain ✓
             </Badge>
           </div>
@@ -251,8 +251,8 @@ const PatientRecordDetail = () => {
           <Card className="bg-card border border-border shadow-sm rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                  <Share2 className="h-4 w-4 text-success" />
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Share2 className="h-4 w-4 text-primary" />
                 </div>
                 Manage Hospital Access
               </CardTitle>
@@ -268,10 +268,10 @@ const PatientRecordDetail = () => {
                     {shared.map((s) => (
                       <div
                         key={s.hospitalId}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-success/5 border border-success/20"
+                        className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20"
                       >
-                        <div className="w-7 h-7 rounded-md bg-success/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <Building2 className="h-3.5 w-3.5 text-success" />
+                        <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
@@ -326,7 +326,7 @@ const PatientRecordDetail = () => {
                 </p>
                 {availableHospitals.length === 0 ? (
                   <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <ShieldCheck className="h-5 w-5 text-success mx-auto mb-1" />
+                    <ShieldCheck className="h-5 w-5 text-primary mx-auto mb-1" />
                     <p className="text-xs text-muted-foreground">
                       All hospitals already have access
                     </p>
