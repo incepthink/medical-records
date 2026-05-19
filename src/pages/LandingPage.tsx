@@ -66,7 +66,10 @@ const personas = [
     borderHover: "hover:border-primary/40",
     badgeVariant: "outline" as const,
     capabilities: [
-      { icon: ShieldCheck, text: "View records patients have explicitly shared" },
+      {
+        icon: ShieldCheck,
+        text: "View records patients have explicitly shared",
+      },
       { icon: CheckCircle2, text: "Access cryptographic proof of each record" },
       { icon: PenLine, text: "Sign records with a verifiable hash" },
       { icon: ClipboardList, text: "Full audit trail of every access event" },
@@ -146,13 +149,16 @@ const LandingPage = () => {
         </div>
 
         <div className="relative max-w-3xl text-center mb-10 animate-fade-in">
-          <Badge variant="outline" className="mb-5 text-xs font-medium px-3 py-1">
+          <Badge
+            variant="outline"
+            className="mb-5 text-xs font-medium px-3 py-1"
+          >
             Powered by Base Sepolia Blockchain
           </Badge>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">
             Your medical records.{" "}
-            <span className="text-gradient">Secured on-chain.</span>{" "}
-            Always in your control.
+            <span className="text-gradient">Secured on-chain.</span> Always in
+            your control.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
             VaultMed uses blockchain technology to give patients ownership of
@@ -191,7 +197,10 @@ const LandingPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
             {steps.map((step, i) => (
-              <div key={step.title} className="relative flex flex-col items-center text-center">
+              <div
+                key={step.title}
+                className="relative flex flex-col items-center text-center"
+              >
                 {/* Connector line */}
                 {i < steps.length - 1 && (
                   <div className="hidden md:block absolute top-9 left-[calc(50%+36px)] w-[calc(100%-72px)] h-px bg-border z-0" />
@@ -273,11 +282,14 @@ const LandingPage = () => {
                   {/* CTA */}
                   <Button
                     className="mt-auto w-full"
-                    variant={p.title === "Patient" ? "secondary" : p.title === "Hospital" ? "outline" : "default"}
+                    variant={
+                      p.title === "Hospital" || p.title === "Patient"
+                        ? "outline"
+                        : "default"
+                    }
                     onClick={() => navigate(p.route)}
                   >
-                    Enter as {p.title}{" "}
-                    <ArrowRight className="h-4 w-4 ml-1" />
+                    Enter as {p.title} <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </CardContent>
               </Card>
