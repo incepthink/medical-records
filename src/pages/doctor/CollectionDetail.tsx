@@ -8,6 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCollections } from "@/context/CollectionsContext";
 import { truncateAddress, simulateDelay } from "@/mock/data";
 
+function parsePlaceholderColors(url: string) {
+  const m = url.match(/placehold\.co\/\d+x\d+\/([^/]+)\/([^?]+)/);
+  return m ? { bg: `#${m[1]}`, text: `#${m[2]}` } : { bg: '#dbeafe', text: '#1d4ed8' };
+}
+
 const CollectionDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { collections, records } = useCollections();
@@ -108,19 +113,27 @@ const CollectionDetail = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {colRecords.map((rec) => (
+          {colRecords.map((rec) => {
+            const { bg: thumbBg, text: thumbText } = parsePlaceholderColors(rec.imageUrl);
+            return (
             <Card
               key={rec.id}
               className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
-              onClick={() => navigate(`/patient/record/${rec.id}`)}
+              onClick={() => navigate(`/doctor/record/${rec.id}`)}
             >
               <CardContent className="p-0">
                 <div className="relative">
-                  <img
-                    src={rec.imageUrl}
-                    alt={rec.title}
-                    className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <div
+                    className="w-full h-44 flex items-center justify-center"
+                    style={{ backgroundColor: thumbBg }}
+                  >
+                    <span
+                      className="text-xl font-bold text-center px-6 leading-snug"
+                      style={{ color: thumbText }}
+                    >
+                      {rec.title}
+                    </span>
+                  </div>
                   <Badge className="absolute top-3 right-3 bg-success text-success-foreground text-xs">
                     Minted ✓
                   </Badge>
@@ -139,7 +152,8 @@ const CollectionDetail = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

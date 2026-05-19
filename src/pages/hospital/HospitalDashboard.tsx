@@ -94,38 +94,38 @@ const HospitalDashboard = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-card border border-border shadow-sm rounded-xl">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <FileText className="h-5 w-5 text-primary" />
+        <Card className="bg-card border border-border border-l-4 border-l-primary shadow-sm rounded-xl">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="h-6 w-6 text-primary" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Records Shared</p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-3xl font-extrabold text-foreground">
                 {sharedRecordsForHospital.length}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border border-border shadow-sm rounded-xl">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-5 w-5 text-success" />
+        <Card className="bg-card border border-border border-l-4 border-l-success shadow-sm rounded-xl">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Verified</p>
-              <p className="text-2xl font-bold text-foreground">{verifiedCount}</p>
+              <p className="text-3xl font-extrabold text-foreground">{verifiedCount}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card border border-border shadow-sm rounded-xl">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-              <Clock className="h-5 w-5 text-warning" />
+        <Card className="bg-card border border-border border-l-4 border-l-warning shadow-sm rounded-xl">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
+              <Clock className="h-6 w-6 text-warning" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Pending Verification</p>
-              <p className="text-2xl font-bold text-foreground">{pendingCount}</p>
+              <p className="text-3xl font-extrabold text-foreground">{pendingCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -239,11 +239,10 @@ const HospitalDashboard = () => {
                       {rec.title}
                     </h3>
                     <Badge
-                      variant={rec.signed ? "default" : "secondary"}
                       className={`shrink-0 text-xs gap-1 ${
                         rec.signed
                           ? "bg-success text-success-foreground"
-                          : "bg-warning/10 text-warning border border-warning/20"
+                          : "bg-warning text-warning-foreground"
                       }`}
                     >
                       {rec.signed ? (

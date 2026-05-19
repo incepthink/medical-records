@@ -15,6 +15,7 @@ import DoctorDashboard from "@/pages/doctor/DoctorDashboard";
 import CreateRecord from "@/pages/doctor/CreateRecord";
 import DoctorCollections from "@/pages/doctor/DoctorCollections";
 import CollectionDetail from "@/pages/doctor/CollectionDetail";
+import DoctorRecordDetail from "@/pages/doctor/DoctorRecordDetail";
 import PatientDashboard from "@/pages/patient/PatientDashboard";
 import PatientRecordDetail from "@/pages/patient/PatientRecordDetail";
 import HospitalDashboard from "@/pages/hospital/HospitalDashboard";
@@ -53,6 +54,10 @@ const App = () => (
                     <Route
                       path="/doctor/collection/:id"
                       element={<CollectionDetail />}
+                    />
+                    <Route
+                      path="/doctor/record/:id"
+                      element={<DoctorRecordDetail />}
                     />
                   </Route>
 

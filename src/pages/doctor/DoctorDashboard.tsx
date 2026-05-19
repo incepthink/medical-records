@@ -21,6 +21,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useCollections } from "@/context/CollectionsContext";
 import { truncateAddress, simulateDelay } from "@/mock/data";
 
+function parsePlaceholderColors(url: string) {
+  const m = url.match(/placehold\.co\/\d+x\d+\/([^/]+)\/([^?]+)/);
+  return m ? { bg: `#${m[1]}`, text: `#${m[2]}` } : { bg: '#dbeafe', text: '#1d4ed8' };
+}
+
 const DoctorDashboard = () => {
   const { user } = useAuth();
   const { records, collections } = useCollections();
@@ -162,52 +167,6 @@ const DoctorDashboard = () => {
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card
-            className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
-            onClick={() => navigate("/doctor/create-record")}
-          >
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                <Plus className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Create New Record</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Mint a medical record as an NFT and send it directly to a patient's wallet.
-                </p>
-                <span className="text-xs text-primary font-medium mt-2 inline-flex items-center gap-1">
-                  Get started <ArrowRight className="h-3 w-3" />
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
-            onClick={() => navigate("/doctor/collections")}
-          >
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center shrink-0 group-hover:bg-success/20 transition-colors">
-                <FolderOpen className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">New Collection</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Group related records into a named collection like "Lab Results" or "Cardiology".
-                </p>
-                <span className="text-xs text-success font-medium mt-2 inline-flex items-center gap-1">
-                  Organize records <ArrowRight className="h-3 w-3" />
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
       {/* Recent Records */}
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -275,19 +234,26 @@ const DoctorDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {doctorRecords.map((rec) => {
               const col = collections.find((c) => c.id === rec.collectionId);
+              const { bg: thumbBg, text: thumbText } = parsePlaceholderColors(rec.imageUrl);
               return (
                 <Card
                   key={rec.id}
                   className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
-                  onClick={() => navigate(`/patient/record/${rec.id}`)}
+                  onClick={() => navigate(`/doctor/record/${rec.id}`)}
                 >
                   <CardContent className="p-0">
                     <div className="relative">
-                      <img
-                        src={rec.imageUrl}
-                        alt={rec.title}
-                        className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <div
+                        className="w-full h-44 flex items-center justify-center"
+                        style={{ backgroundColor: thumbBg }}
+                      >
+                        <span
+                          className="text-xl font-bold text-center px-6 leading-snug"
+                          style={{ color: thumbText }}
+                        >
+                          {rec.title}
+                        </span>
+                      </div>
                       <Badge
                         className={`absolute top-3 right-3 text-xs ${
                           rec.status === "minted"
