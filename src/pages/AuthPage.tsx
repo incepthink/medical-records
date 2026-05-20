@@ -1,16 +1,28 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAccount } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Shield, Wallet } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield } from "lucide-react";
+import { useMidnightWalletContext } from "@/context/MidnightWalletContext";
+import { useAuth } from "@/context/AuthContext";
+import { WalletGate } from "@/components/WalletGate";
+import { isUIPersona, type UIPersona } from "@/lib/personaMap";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useAuth, Persona } from "@/context/AuthContext";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import { toast } from "sonner";
 
-const personaLabels: Record<string, string> = {
+const personaLabels: Record<UIPersona, string> = {
   doctor: "Doctor",
   patient: "Patient",
   hospital: "Hospital",
@@ -18,64 +30,92 @@ const personaLabels: Record<string, string> = {
 
 const AuthPage = () => {
   const { persona } = useParams<{ persona: string }>();
-  const { isConnected } = useAccount();
-  const { login } = useAuth();
+  const { isConnected, address } = useMidnightWalletContext();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
-  const validPersona = persona as Persona;
-  const label = personaLabels[persona || ""] || "User";
+  if (!persona || !isUIPersona(persona)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <p className="text-muted-foreground">Unknown persona "{persona}".</p>
+      </div>
+    );
+  }
 
-  const dashboardRoutes: Record<string, string> = {
-    doctor: "/doctor/dashboard",
-    patient: "/patient/dashboard",
-    hospital: "/hospital/dashboard",
-  };
+  const validPersona: UIPersona = persona;
+  const label = personaLabels[validPersona];
 
-  const validate = (isSignup: boolean) => {
+  if (!isConnected) return <WalletGate />;
+
+  const validate = (fields: Record<string, string>) => {
     const errs: Record<string, string> = {};
-    if (isSignup && !name.trim()) errs.name = "Full name is required";
-    if (!email.trim()) errs.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
-    if (!password.trim()) errs.password = "Password is required";
-    else if (password.length < 6)
+    for (const [key, val] of Object.entries(fields)) {
+      if (!val.trim()) {
+        errs[key] = `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
+      }
+    }
+    if (fields.email && !/\S+@\S+\.\S+/.test(fields.email)) {
+      errs.email = "Enter a valid email";
+    }
+    if (fields.password && fields.password.length < 6) {
       errs.password = "Password must be at least 6 characters";
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (isSignup: boolean) => {
-    if (!validate(isSignup)) return;
-    login(validPersona, email, password);
-    navigate(dashboardRoutes[validPersona] || "/");
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate({ email: loginEmail, password: loginPassword })) return;
+    setLoading(true);
+    try {
+      await login(validPersona, loginEmail, loginPassword);
+      toast.success("Welcome back!");
+      navigate(`/${validPersona}/dashboard`);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Login failed";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!isConnected) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <Card className="w-full max-w-md bg-card border border-border shadow-sm rounded-xl animate-scale-in">
-          <CardContent className="p-8 flex flex-col items-center text-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Wallet className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
-                Connect Your Wallet
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Connect your wallet to continue as {label}
-              </p>
-            </div>
-            <ConnectButton />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !validate({ name, email: signupEmail, password: signupPassword })
+    )
+      return;
+    setLoading(true);
+    try {
+      await signup(
+        validPersona,
+        name,
+        signupEmail,
+        signupPassword,
+        address ?? undefined,
+      );
+      toast.success("Account created!");
+      navigate(`/${validPersona}/dashboard`);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Signup failed";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -98,18 +138,20 @@ const AuthPage = () => {
               </TabsList>
 
               <TabsContent value="login">
-                <div className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
                       placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
                     />
                     {errors.email && (
-                      <p className="text-sm text-destructive">{errors.email}</p>
+                      <p className="text-sm text-destructive">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -118,8 +160,8 @@ const AuthPage = () => {
                       id="login-password"
                       type="password"
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                     />
                     {errors.password && (
                       <p className="text-sm text-destructive">
@@ -128,16 +170,17 @@ const AuthPage = () => {
                     )}
                   </div>
                   <Button
+                    type="submit"
+                    disabled={loading}
                     className="w-full"
-                    onClick={() => handleSubmit(false)}
                   >
-                    Log In
+                    {loading ? "Logging in..." : "Log In"}
                   </Button>
-                </div>
+                </form>
               </TabsContent>
 
               <TabsContent value="signup">
-                <div className="space-y-4">
+                <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
@@ -156,11 +199,13 @@ const AuthPage = () => {
                       id="signup-email"
                       type="email"
                       placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
                     />
                     {errors.email && (
-                      <p className="text-sm text-destructive">{errors.email}</p>
+                      <p className="text-sm text-destructive">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -169,8 +214,8 @@ const AuthPage = () => {
                       id="signup-password"
                       type="password"
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
                     />
                     {errors.password && (
                       <p className="text-sm text-destructive">
@@ -178,10 +223,14 @@ const AuthPage = () => {
                       </p>
                     )}
                   </div>
-                  <Button className="w-full" onClick={() => handleSubmit(true)}>
-                    Create Account
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? "Creating account..." : "Create Account"}
                   </Button>
-                </div>
+                </form>
               </TabsContent>
             </Tabs>
           </CardContent>

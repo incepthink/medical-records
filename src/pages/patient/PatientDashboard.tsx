@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -25,42 +25,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCollections } from "@/context/CollectionsContext";
 import { useAuth } from "@/context/AuthContext";
-import { simulateDelay } from "@/mock/data";
+import { useDocuments } from "@/hooks/useDocuments";
 
 const PatientDashboard = () => {
   const { user } = useAuth();
-  const { records, collections, sharedWith } = useCollections();
+  const { data: records, isLoading } = useDocuments();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState("newest");
   const [filter, setFilter] = useState("");
 
-  useEffect(() => {
-    simulateDelay(600).then(() => setLoading(false));
-  }, []);
-
-  const allPatientRecords = records.filter((r) => r.patientWallet === user?.wallet);
+  const allPatientRecords = records ?? [];
 
   const totalRecords = allPatientRecords.length;
-  const sharedRecordsCount = allPatientRecords.filter(
-    (r) => (sharedWith[r.id] || []).length > 0,
-  ).length;
-  const totalHospitalsWithAccess = new Set(
-    allPatientRecords.flatMap((r) =>
-      (sharedWith[r.id] || []).map((s) => s.hospitalId),
-    ),
-  ).size;
 
   let patientRecords = [...allPatientRecords];
-
   if (filter) {
     patientRecords = patientRecords.filter((r) =>
-      r.doctorName.toLowerCase().includes(filter.toLowerCase()),
+      (r.creator?.name ?? "").toLowerCase().includes(filter.toLowerCase()),
     );
   }
-
   patientRecords.sort((a, b) =>
     sort === "newest"
       ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -78,35 +62,35 @@ const PatientDashboard = () => {
       label: "Total Records",
       value: totalRecords,
       icon: FileText,
-      color: "text-primary",
       bg: "bg-primary/10",
+      color: "text-primary",
       border: "border-l-primary",
       trend: "Your NFTs",
       trendIcon: TrendingUp,
     },
     {
-      label: "Shared Records",
-      value: sharedRecordsCount,
-      icon: Share2,
-      color: "text-primary",
+      label: "Categories",
+      value: new Set(allPatientRecords.map((r) => r.category)).size,
+      icon: Activity,
       bg: "bg-primary/10",
+      color: "text-primary",
       border: "border-l-primary",
-      trend: "With hospitals",
-      trendIcon: Activity,
+      trend: "Across records",
+      trendIcon: Share2,
     },
     {
-      label: "Hospitals with Access",
-      value: totalHospitalsWithAccess,
+      label: "Hospital Access",
+      value: "Manage",
       icon: Building2,
-      color: "text-primary",
       bg: "bg-primary/10",
+      color: "text-primary",
       border: "border-l-primary",
-      trend: "Unique hospitals",
+      trend: "per record",
       trendIcon: ShieldCheck,
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <Skeleton className="h-36 rounded-2xl" />
@@ -127,7 +111,6 @@ const PatientDashboard = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Hero Banner */}
       <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-border p-8">
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
@@ -143,14 +126,13 @@ const PatientDashboard = () => {
               {user?.name}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Your medical records are secured on Base Sepolia as NFTs — only
-              you control who sees them.
+              Your medical records are secured on Midnight Preprod as NFTs —
+              only you control who sees them.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {statsConfig.map((s) => (
           <Card
@@ -182,7 +164,6 @@ const PatientDashboard = () => {
         ))}
       </div>
 
-      {/* Filter bar */}
       <Card className="bg-card border border-border shadow-sm rounded-xl">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -214,7 +195,6 @@ const PatientDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Records Grid */}
       {patientRecords.length === 0 ? (
         <Card className="bg-card border border-border shadow-sm rounded-xl">
           <CardContent className="p-12 flex flex-col items-center text-center gap-6">
@@ -228,7 +208,7 @@ const PatientDashboard = () => {
               <p className="text-sm text-muted-foreground max-w-sm">
                 {filter
                   ? "No records match your filter."
-                  : "Records issued by your doctor will appear here once they're minted on the blockchain."}
+                  : "Records issued by your doctor will appear here once they're minted on Midnight."}
               </p>
             </div>
             {!filter && (
@@ -238,35 +218,29 @@ const PatientDashboard = () => {
                     icon: Stethoscope,
                     label: "Doctor",
                     sub: "Creates record",
-                    color: "text-primary",
-                    bg: "bg-primary/10",
                   },
                   {
                     icon: FileText,
                     label: "NFT Minted",
-                    sub: "On Base Sepolia",
-                    color: "text-primary",
-                    bg: "bg-primary/10",
+                    sub: "On Midnight Preprod",
                   },
                   {
                     icon: User,
                     label: "You",
                     sub: "Receive & manage",
-                    color: "text-primary",
-                    bg: "bg-primary/10",
                   },
                 ].map((step, i) => (
                   <div key={step.label} className="flex items-center gap-4">
                     <div className="flex flex-col items-center text-center">
-                      <div
-                        className={`w-14 h-14 rounded-2xl ${step.bg} flex items-center justify-center mb-2`}
-                      >
-                        <step.icon className={`h-7 w-7 ${step.color}`} />
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-2">
+                        <step.icon className="h-7 w-7 text-primary" />
                       </div>
                       <p className="text-sm font-semibold text-foreground">
                         {step.label}
                       </p>
-                      <p className="text-xs text-muted-foreground">{step.sub}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {step.sub}
+                      </p>
                     </div>
                     {i < 2 && (
                       <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -279,61 +253,62 @@ const PatientDashboard = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {patientRecords.map((rec, index) => {
-            const col = collections.find((c) => c.id === rec.collectionId);
-            const isShared = (sharedWith[rec.id] || []).length > 0;
-            return (
-              <Card
-                key={rec.id}
-                className={`bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group ${isShared ? "border-l-4 border-l-primary" : ""}`}
-                style={{ animationDelay: `${index * 0.08}s` }}
-                onClick={() => navigate(`/patient/record/${rec.id}`)}
-              >
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <img
-                      src={rec.imageUrl}
-                      alt={rec.title}
-                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
-                      <Badge className="bg-primary text-primary-foreground text-xs">
-                        On-chain ✓
-                      </Badge>
-                      {isShared && (
-                        <Badge className="bg-primary text-primary-foreground text-xs gap-1">
-                          <Share2 className="h-2.5 w-2.5" /> Shared
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <h3 className="font-semibold text-foreground leading-snug">
-                      {rec.title}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Stethoscope className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{rec.doctorName}</span>
-                    </div>
-                    {col && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{col.name}</span>
-                      </div>
+          {patientRecords.map((rec, index) => (
+            <Card
+              key={rec.id}
+              className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
+              style={{ animationDelay: `${index * 0.08}s` }}
+              onClick={() => navigate(`/patient/record/${rec.id}`)}
+            >
+              <CardContent className="p-0">
+                <div className="relative">
+                  <div className="w-full h-44 flex items-center justify-center bg-primary/5">
+                    {rec.fileUrl && rec.fileType === "image" ? (
+                      <img
+                        src={rec.fileUrl}
+                        alt={rec.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <span className="text-xl font-bold text-center px-6 leading-snug text-primary">
+                        {rec.title}
+                      </span>
                     )}
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(rec.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="text-xs text-primary font-medium flex items-center gap-1">
-                        View <Eye className="h-3 w-3" />
-                      </span>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
+                    <Badge className="bg-primary text-primary-foreground text-xs">
+                      On-chain ✓
+                    </Badge>
+                  </div>
+                </div>
+                <div className="p-4 space-y-2">
+                  <h3 className="font-semibold text-foreground leading-snug">
+                    {rec.title}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Stethoscope className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">
+                      {rec.creator?.name ?? "Unknown"}
+                    </span>
+                  </div>
+                  {rec.collection && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{rec.collection.name}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(rec.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-xs text-primary font-medium flex items-center gap-1">
+                      View <Eye className="h-3 w-3" />
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

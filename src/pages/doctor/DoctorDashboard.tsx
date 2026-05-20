@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -18,26 +17,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { useCollections } from "@/context/CollectionsContext";
-import { truncateAddress, simulateDelay } from "@/mock/data";
-
-function parsePlaceholderColors(url: string) {
-  const m = url.match(/placehold\.co\/\d+x\d+\/([^/]+)\/([^?]+)/);
-  return m ? { bg: `#${m[1]}`, text: `#${m[2]}` } : { bg: '#dbeafe', text: '#1d4ed8' };
-}
+import { useDocuments } from "@/hooks/useDocuments";
+import { useCollections } from "@/hooks/useCollections";
+import { truncateAddress } from "@/mock/data";
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
-  const { records, collections } = useCollections();
+  const { data: records, isLoading: docsLoading } = useDocuments();
+  const { data: collections, isLoading: colsLoading } = useCollections();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    simulateDelay(600).then(() => setLoading(false));
-  }, []);
-
-  const doctorRecords = records.filter((r) => r.doctorId === user?.id);
-  const uniquePatients = new Set(doctorRecords.map((r) => r.patientWallet)).size;
+  const loading = docsLoading || colsLoading;
+  const doctorRecords = records ?? [];
+  const uniquePatients = new Set(doctorRecords.map((r) => r.ownerWallet)).size;
   const thisMonth = doctorRecords.filter((r) => {
     const d = new Date(r.createdAt);
     const now = new Date();
@@ -54,7 +46,7 @@ const DoctorDashboard = () => {
       color: "text-primary",
       bg: "bg-primary/10",
       border: "border-l-primary",
-      trend: "+2 this week",
+      trend: `${thisMonth} this month`,
       trendIcon: TrendingUp,
     },
     {
@@ -94,11 +86,6 @@ const DoctorDashboard = () => {
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[1, 2].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-64 rounded-xl" />
@@ -126,7 +113,7 @@ const DoctorDashboard = () => {
               {user?.name}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Managing your patients' records on Base Sepolia
+              Managing patient records on Midnight Preprod
             </p>
           </div>
 
@@ -134,7 +121,10 @@ const DoctorDashboard = () => {
             <Button onClick={() => navigate("/doctor/create-record")}>
               <Plus className="h-4 w-4 mr-2" /> Create Record
             </Button>
-            <Button variant="outline" onClick={() => navigate("/doctor/collections")}>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/doctor/collections")}
+            >
               <FolderOpen className="h-4 w-4 mr-2" /> Collections
             </Button>
           </div>
@@ -155,12 +145,18 @@ const DoctorDashboard = () => {
                 <s.icon className={`h-6 w-6 ${s.color}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-3xl font-extrabold text-foreground">{s.value}</p>
-                <p className="text-sm text-muted-foreground truncate">{s.label}</p>
+                <p className="text-3xl font-extrabold text-foreground">
+                  {s.value}
+                </p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {s.label}
+                </p>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
                 <s.trendIcon className={`h-4 w-4 ${s.color}`} />
-                <span className={`text-xs font-medium ${s.color}`}>{s.trend}</span>
+                <span className={`text-xs font-medium ${s.color}`}>
+                  {s.trend}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -170,7 +166,9 @@ const DoctorDashboard = () => {
       {/* Recent Records */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Recent Records</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            Recent Records
+          </h2>
           {doctorRecords.length > 0 && (
             <Button
               variant="ghost"
@@ -191,32 +189,29 @@ const DoctorDashboard = () => {
                     icon: Stethoscope,
                     label: "Doctor",
                     sub: "Creates record",
-                    color: "text-primary",
-                    bg: "bg-primary/10",
                   },
                   {
                     icon: FileText,
                     label: "Record",
                     sub: "Minted as NFT",
-                    color: "text-primary",
-                    bg: "bg-primary/10",
                   },
                   {
                     icon: Users,
                     label: "Patient",
                     sub: "Receives in wallet",
-                    color: "text-primary",
-                    bg: "bg-primary/10",
                   },
                 ].map((step, i) => (
-                  <div key={step.label} className="flex sm:flex-row items-center gap-0">
+                  <div
+                    key={step.label}
+                    className="flex sm:flex-row items-center gap-0"
+                  >
                     <div className="flex flex-col items-center text-center px-4">
-                      <div
-                        className={`w-14 h-14 rounded-2xl ${step.bg} flex items-center justify-center mb-2`}
-                      >
-                        <step.icon className={`h-7 w-7 ${step.color}`} />
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-2">
+                        <step.icon className="h-7 w-7 text-primary" />
                       </div>
-                      <p className="text-sm font-semibold text-foreground">{step.label}</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {step.label}
+                      </p>
                       <p className="text-xs text-muted-foreground">{step.sub}</p>
                     </div>
                     {i < 2 && (
@@ -232,9 +227,8 @@ const DoctorDashboard = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {doctorRecords.map((rec) => {
-              const col = collections.find((c) => c.id === rec.collectionId);
-              const { bg: thumbBg, text: thumbText } = parsePlaceholderColors(rec.imageUrl);
+            {doctorRecords.slice(0, 6).map((rec) => {
+              const col = collections?.find((c) => c.id === rec.collectionId);
               return (
                 <Card
                   key={rec.id}
@@ -243,23 +237,21 @@ const DoctorDashboard = () => {
                 >
                   <CardContent className="p-0">
                     <div className="relative">
-                      <div
-                        className="w-full h-44 flex items-center justify-center"
-                        style={{ backgroundColor: thumbBg }}
-                      >
-                        <span
-                          className="text-xl font-bold text-center px-6 leading-snug"
-                          style={{ color: thumbText }}
-                        >
-                          {rec.title}
-                        </span>
+                      <div className="w-full h-44 flex items-center justify-center bg-primary/5">
+                        {rec.fileUrl && rec.fileType === "image" ? (
+                          <img
+                            src={rec.fileUrl}
+                            alt={rec.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl font-bold text-center px-6 leading-snug text-primary">
+                            {rec.title}
+                          </span>
+                        )}
                       </div>
                       <Badge
-                        className={`absolute top-3 right-3 text-xs ${
-                          rec.status === "minted"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-primary text-primary-foreground"
-                        }`}
+                        className={`absolute top-3 right-3 text-xs bg-primary text-primary-foreground`}
                       >
                         {rec.status === "minted" ? "Minted ✓" : "Pending"}
                       </Badge>
@@ -277,7 +269,7 @@ const DoctorDashboard = () => {
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground font-mono">
-                        {truncateAddress(rec.patientWallet)}
+                        {truncateAddress(rec.ownerWallet)}
                       </p>
                       <div className="flex items-center justify-between pt-1 border-t border-border">
                         <span className="text-xs text-muted-foreground">

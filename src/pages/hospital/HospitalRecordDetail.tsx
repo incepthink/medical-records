@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -15,63 +15,46 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollections } from "@/context/CollectionsContext";
 import { useAuth } from "@/context/AuthContext";
-import { truncateAddress, simulateDelay } from "@/mock/data";
+import { useViewerDocuments } from "@/hooks/useViewers";
+import { useSignDocument } from "@/hooks/useSharing";
+import { useMidnightWalletContext } from "@/context/MidnightWalletContext";
+import {
+  callSignDocument,
+  decodeShieldedAddress,
+  bytesToHex,
+} from "@/lib/midnight/contractApi";
+import { truncateAddress } from "@/mock/data";
 import { toast } from "sonner";
 
 const HospitalRecordDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const {
-    records,
-    collections,
-    sharedRecordsForHospital,
-    markHospitalRecordSigned,
-    logView,
-  } = useCollections();
-  const [loading, setLoading] = useState(true);
+  const { data: shares, isLoading } = useViewerDocuments();
+  const signDocument = useSignDocument();
+  const { connectedAPI, address: midnightAddress } =
+    useMidnightWalletContext();
+
   const [signing, setSigning] = useState(false);
+  const [signed, setSigned] = useState(false);
   const [justSigned, setJustSigned] = useState(false);
+  const [sigHashHex, setSigHashHex] = useState("");
+  const [sigTimestamp] = useState(new Date().toISOString());
 
-  useEffect(() => {
-    simulateDelay(600).then(() => setLoading(false));
-  }, []);
+  const share = shares?.find((s) => s.document.id === id || s.documentId === id);
+  const record = share?.document;
 
-  const sharedRec = sharedRecordsForHospital.find((r) => r.recordId === id);
-  const record = records.find((r) => r.id === id);
-  const collection = record
-    ? collections.find((c) => c.id === record.collectionId)
-    : null;
-  const isSigned = sharedRec?.signed || false;
-
-  const signatureHash = `0x${Array.from({ length: 64 }, () =>
-    Math.floor(Math.random() * 16).toString(16)
-  ).join("")}`;
-
-  const handleSign = async () => {
-    setSigning(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    markHospitalRecordSigned(id || "");
-    logView(
-      id || "",
-      user?.id || "",
-      user?.name || "",
-      user?.wallet || "",
-      signatureHash,
-    );
-    setSigning(false);
-    setJustSigned(true);
-    toast.success("Identity verified! Record access granted.");
-    setTimeout(() => setJustSigned(false), 2000);
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-6 w-56" />
@@ -81,10 +64,54 @@ const HospitalRecordDetail = () => {
     );
   }
 
-  if (!record)
+  if (!record || !share)
     return <p className="text-muted-foreground">Record not found.</p>;
 
-  // Signing state
+  const handleSign = async () => {
+    if (!midnightAddress) {
+      toast.error("Wallet not connected");
+      return;
+    }
+    setSigning(true);
+    try {
+      const viewerPk = decodeShieldedAddress(midnightAddress);
+      const timestamp = new Date().toISOString();
+      const combined = new TextEncoder().encode(
+        bytesToHex(viewerPk) + timestamp + record.id,
+      );
+      const hashBuf = await crypto.subtle.digest("SHA-256", combined);
+      const sigHash = new Uint8Array(hashBuf);
+      const hexSig = "0x" + bytesToHex(sigHash);
+
+      if (connectedAPI && record.onchainTokenId) {
+        try {
+          const tokenId = BigInt(record.onchainTokenId);
+          await callSignDocument(connectedAPI, tokenId, viewerPk, sigHash);
+        } catch (err) {
+          console.log("On-chain sign failed, continuing with backend:", err);
+        }
+      }
+
+      await signDocument.mutateAsync({
+        documentId: record.id,
+        signatureHash: hexSig,
+      });
+
+      setSigHashHex(hexSig);
+      setSigning(false);
+      setJustSigned(true);
+      toast.success("Identity verified! Record access granted.");
+      setTimeout(() => {
+        setJustSigned(false);
+        setSigned(true);
+      }, 1200);
+    } catch (err) {
+      setSigning(false);
+      console.log(err);
+      toast.error("Sign failed. Please try again.");
+    }
+  };
+
   if (signing) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] animate-fade-in">
@@ -95,10 +122,10 @@ const HospitalRecordDetail = () => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">
-                Awaiting Wallet Signature…
+                Generating signature proof…
               </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Please confirm the signature request in your wallet
+                Submitting the signature to Midnight Preprod
               </p>
             </div>
           </CardContent>
@@ -107,7 +134,6 @@ const HospitalRecordDetail = () => {
     );
   }
 
-  // Success animation
   if (justSigned) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] animate-scale-in">
@@ -130,7 +156,6 @@ const HospitalRecordDetail = () => {
     );
   }
 
-  // Breadcrumb
   const Breadcrumb = () => (
     <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
       <Link
@@ -146,7 +171,6 @@ const HospitalRecordDetail = () => {
     </nav>
   );
 
-  // Hero Banner (always shown)
   const HeroBanner = () => (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/10 p-8">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-32 translate-x-32 blur-3xl pointer-events-none" />
@@ -161,25 +185,25 @@ const HospitalRecordDetail = () => {
           {record.title}
         </h1>
         <div className="flex flex-wrap gap-2">
-          {collection && (
+          {record.collection && (
             <Badge variant="secondary" className="gap-1.5 text-xs">
-              <FolderOpen className="h-3 w-3" /> {collection.name}
+              <FolderOpen className="h-3 w-3" /> {record.collection.name}
             </Badge>
           )}
           <Badge variant="secondary" className="gap-1.5 text-xs">
             <Hash className="h-3 w-3" /> NFT Record
           </Badge>
           <Badge variant="secondary" className="gap-1.5 text-xs">
-            <Globe className="h-3 w-3" /> Base Sepolia
+            <Globe className="h-3 w-3" /> Midnight Preprod
           </Badge>
           <Badge
             className={`gap-1.5 text-xs ${
-              isSigned
+              signed
                 ? "bg-primary text-primary-foreground"
                 : "bg-primary/10 text-primary border border-primary/20"
             }`}
           >
-            {isSigned ? (
+            {signed ? (
               <>
                 <ShieldCheck className="h-3 w-3" /> Verified ✓
               </>
@@ -194,8 +218,7 @@ const HospitalRecordDetail = () => {
     </div>
   );
 
-  // Gate card — not signed
-  if (!isSigned) {
+  if (!signed) {
     return (
       <div className="space-y-6 animate-fade-in">
         <Breadcrumb />
@@ -214,9 +237,9 @@ const HospitalRecordDetail = () => {
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     To protect patient privacy, hospitals must cryptographically
-                    sign a challenge with their wallet before viewing full record
-                    contents. This creates an auditable access log visible to the
-                    patient.
+                    sign a challenge with their wallet before viewing full
+                    record contents. This creates an auditable access log
+                    visible to the patient.
                   </p>
                 </div>
               </div>
@@ -234,7 +257,7 @@ const HospitalRecordDetail = () => {
                   {
                     n: 2,
                     label: "Sign the verification challenge",
-                    sub: "No gas fee required — signature only",
+                    sub: "ZK proof submitted to Midnight Preprod",
                   },
                   {
                     n: 3,
@@ -261,12 +284,17 @@ const HospitalRecordDetail = () => {
                 <span>
                   Patient:{" "}
                   <span className="font-mono">
-                    {truncateAddress(record.patientWallet)}
+                    {truncateAddress(record.ownerWallet)}
                   </span>
                 </span>
               </div>
 
-              <Button size="lg" className="w-full gap-2" onClick={handleSign}>
+              <Button
+                size="lg"
+                className="w-full gap-2"
+                onClick={handleSign}
+                disabled={signDocument.isPending}
+              >
                 <ShieldCheck className="h-5 w-5" /> Sign to Verify Identity
               </Button>
             </CardContent>
@@ -276,23 +304,28 @@ const HospitalRecordDetail = () => {
     );
   }
 
-  // Full record view — signed
   return (
     <div className="space-y-6 animate-fade-in">
       <Breadcrumb />
       <HeroBanner />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left col */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Image */}
           <Card className="bg-card border border-border shadow-sm rounded-xl overflow-hidden">
             <div className="relative overflow-hidden">
-              <img
-                src={record.imageUrl}
-                alt={record.title}
-                className="w-full h-64 md:h-80 object-cover hover:scale-105 transition-transform duration-500"
-              />
+              <div className="w-full h-64 md:h-80 flex items-center justify-center bg-primary/5">
+                {record.fileUrl && record.fileType === "image" ? (
+                  <img
+                    src={record.fileUrl}
+                    alt={record.title}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-center px-8 leading-snug text-primary">
+                    {record.title}
+                  </span>
+                )}
+              </div>
               <div className="absolute top-3 right-3">
                 <Badge className="bg-primary text-primary-foreground gap-1.5 shadow">
                   <ShieldCheck className="h-3 w-3" /> Verified ✓
@@ -301,19 +334,17 @@ const HospitalRecordDetail = () => {
             </div>
           </Card>
 
-          {/* Description */}
           <Card className="bg-card border border-border shadow-sm rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Description</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground leading-relaxed text-sm">
-                {record.description}
+                {record.description ?? "No description provided."}
               </p>
             </CardContent>
           </Card>
 
-          {/* Blockchain Details */}
           <Card className="bg-card border border-l-4 border-l-primary border-border shadow-sm rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Blockchain Details</CardTitle>
@@ -323,13 +354,14 @@ const HospitalRecordDetail = () => {
                 {
                   icon: Stethoscope,
                   label: "Issued by",
-                  value: record.doctorName,
+                  value: record.creator?.name ?? "—",
                   mono: false,
                 },
                 {
                   icon: Hash,
                   label: "Token ID",
-                  value: `#${record.tokenId}`,
+                  value:
+                    record.tokenId !== null ? `#${record.tokenId}` : "—",
                   mono: true,
                 },
                 {
@@ -341,7 +373,7 @@ const HospitalRecordDetail = () => {
                 {
                   icon: Globe,
                   label: "Network",
-                  value: "Base Sepolia",
+                  value: "Midnight Preprod",
                   mono: false,
                 },
               ].map(({ icon: Icon, label, value, mono }) => (
@@ -361,30 +393,30 @@ const HospitalRecordDetail = () => {
                   </div>
                 </div>
               ))}
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <ExternalLink className="h-3.5 w-3.5 text-primary" />
+              {record.contractAddress && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contract</p>
+                    <a
+                      href={`https://midnight-explorer.preprod.midnight.network/contracts/${record.contractAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-mono text-primary hover:underline flex items-center gap-1"
+                    >
+                      {truncateAddress(record.contractAddress)}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Contract</p>
-                  <a
-                    href={`https://sepolia.basescan.org/address/${record.contractAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-mono text-primary hover:underline flex items-center gap-1"
-                  >
-                    {truncateAddress(record.contractAddress)}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right col */}
         <div className="space-y-5">
-          {/* Verification Proof */}
           <Card className="bg-card border border-l-4 border-l-primary border-border shadow-sm rounded-xl">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -401,7 +433,7 @@ const HospitalRecordDetail = () => {
                     Signature Hash
                   </p>
                   <p className="font-mono text-xs text-foreground break-all bg-muted/40 rounded-md p-2">
-                    {signatureHash}
+                    {sigHashHex}
                   </p>
                 </div>
                 <div>
@@ -409,7 +441,7 @@ const HospitalRecordDetail = () => {
                     Hospital Wallet
                   </p>
                   <p className="font-mono text-sm text-foreground">
-                    {truncateAddress(user?.wallet || "")}
+                    {truncateAddress(user?.wallet ?? midnightAddress ?? "")}
                   </p>
                 </div>
                 <div>
@@ -417,7 +449,7 @@ const HospitalRecordDetail = () => {
                     Verified at
                   </p>
                   <p className="text-sm text-foreground">
-                    {new Date().toLocaleString()}
+                    {new Date(sigTimestamp).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -427,7 +459,6 @@ const HospitalRecordDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Access Info */}
           <Card className="bg-card border border-border shadow-sm rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Access Info</CardTitle>
@@ -438,9 +469,11 @@ const HospitalRecordDetail = () => {
                   <User className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Patient Wallet</p>
+                  <p className="text-xs text-muted-foreground">
+                    Patient Wallet
+                  </p>
                   <p className="font-mono text-sm text-foreground">
-                    {truncateAddress(record.patientWallet)}
+                    {truncateAddress(record.ownerWallet)}
                   </p>
                 </div>
               </div>
@@ -450,22 +483,22 @@ const HospitalRecordDetail = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Doctor</p>
-                  <p className="text-sm text-foreground">{record.doctorName}</p>
+                  <p className="text-sm text-foreground">
+                    {record.creator?.name ?? "—"}
+                  </p>
                 </div>
               </div>
-              {sharedRec && (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Calendar className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Shared on</p>
-                    <p className="text-sm text-foreground">
-                      {new Date(sharedRec.sharedAt).toLocaleDateString()}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Calendar className="h-3.5 w-3.5 text-primary" />
                 </div>
-              )}
+                <div>
+                  <p className="text-xs text-muted-foreground">Shared on</p>
+                  <p className="text-sm text-foreground">
+                    {new Date(share.grantedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

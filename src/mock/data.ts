@@ -202,3 +202,22 @@ export function truncateAddress(address: string): string {
 export function simulateDelay(ms: number = 600): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export type DocumentCategory =
+  | "Contract"
+  | "Report"
+  | "Certificate"
+  | "Invoice"
+  | "Dataset"
+  | "Other";
+export type FileType = "pdf" | "image" | "docx";
+export type DocumentStatus = "minted" | "pending";
+
+export const CATEGORY_COLORS: Record<DocumentCategory, string> = {
+  Contract: "bg-primary/10 text-primary border-primary/20",
+  Report: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+  Certificate: "bg-success/10 text-success border-success/20",
+  Invoice: "bg-warning/10 text-warning border-warning/20",
+  Dataset: "bg-secondary/10 text-secondary-foreground border-secondary/20",
+  Other: "bg-muted text-muted-foreground border-muted",
+};

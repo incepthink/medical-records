@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Shield, Menu, X, LogOut, User } from "lucide-react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { MidnightConnectButton } from "@/components/MidnightConnectButton";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,11 +63,7 @@ const Navbar = () => {
         {/* Right */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:block">
-            <ConnectButton
-              accountStatus="address"
-              chainStatus="icon"
-              showBalance={false}
-            />
+            <MidnightConnectButton walletType="lace" />
           </div>
           {user && (
             <DropdownMenu>
@@ -126,11 +122,7 @@ const Navbar = () => {
             </Link>
           ))}
           <div className="pt-2 sm:hidden">
-            <ConnectButton
-              accountStatus="address"
-              chainStatus="icon"
-              showBalance={false}
-            />
+            <MidnightConnectButton walletType="oneam" />
           </div>
         </div>
       )}

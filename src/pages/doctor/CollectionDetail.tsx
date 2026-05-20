@@ -1,32 +1,26 @@
-import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FileText, FolderOpen, Plus, ChevronRight } from "lucide-react";
+import {
+  FileText,
+  FolderOpen,
+  Plus,
+  ChevronRight,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollections } from "@/context/CollectionsContext";
-import { truncateAddress, simulateDelay } from "@/mock/data";
-
-function parsePlaceholderColors(url: string) {
-  const m = url.match(/placehold\.co\/\d+x\d+\/([^/]+)\/([^?]+)/);
-  return m
-    ? { bg: `#${m[1]}`, text: `#${m[2]}` }
-    : { bg: "#dbeafe", text: "#1d4ed8" };
-}
+import { useCollection } from "@/hooks/useCollections";
+import { useDocuments } from "@/hooks/useDocuments";
+import { truncateAddress } from "@/mock/data";
 
 const CollectionDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { collections, records } = useCollections();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { data: collection, isLoading: colLoading } = useCollection(id ?? "");
+  const { data: allDocs, isLoading: docsLoading } = useDocuments();
 
-  useEffect(() => {
-    simulateDelay(600).then(() => setLoading(false));
-  }, []);
-
-  const collection = collections.find((c) => c.id === id);
-  const colRecords = records.filter((r) => r.collectionId === id);
+  const loading = colLoading || docsLoading;
+  const colRecords = (allDocs ?? []).filter((d) => d.collectionId === id);
 
   if (loading) {
     return (
@@ -47,7 +41,6 @@ const CollectionDetail = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <button
           onClick={() => navigate("/doctor/collections")}
@@ -61,7 +54,6 @@ const CollectionDetail = () => {
         </span>
       </nav>
 
-      {/* Collection header banner */}
       <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-border p-8">
         <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
@@ -88,7 +80,7 @@ const CollectionDetail = () => {
                 variant="outline"
                 className="text-primary border-primary/40 rounded-full text-xs"
               >
-                Base Sepolia
+                Midnight Preprod
               </Badge>
             </div>
           </div>
@@ -102,7 +94,6 @@ const CollectionDetail = () => {
         </div>
       </div>
 
-      {/* Records */}
       {colRecords.length === 0 ? (
         <Card className="bg-card border border-border shadow-sm rounded-xl">
           <CardContent className="p-12 flex flex-col items-center text-center gap-6">
@@ -125,53 +116,50 @@ const CollectionDetail = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {colRecords.map((rec) => {
-            const { bg: thumbBg, text: thumbText } = parsePlaceholderColors(
-              rec.imageUrl,
-            );
-            return (
-              <Card
-                key={rec.id}
-                className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
-                onClick={() => navigate(`/doctor/record/${rec.id}`)}
-              >
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <div
-                      className="w-full h-44 flex items-center justify-center"
-                      style={{ backgroundColor: thumbBg }}
-                    >
-                      <span
-                        className="text-xl font-bold text-center px-6 leading-snug"
-                        style={{ color: thumbText }}
-                      >
+          {colRecords.map((rec) => (
+            <Card
+              key={rec.id}
+              className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group"
+              onClick={() => navigate(`/doctor/record/${rec.id}`)}
+            >
+              <CardContent className="p-0">
+                <div className="relative">
+                  <div className="w-full h-44 flex items-center justify-center bg-primary/5">
+                    {rec.fileUrl && rec.fileType === "image" ? (
+                      <img
+                        src={rec.fileUrl}
+                        alt={rec.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl font-bold text-center px-6 leading-snug text-primary">
                         {rec.title}
                       </span>
-                    </div>
-                    <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs">
-                      Minted ✓
-                    </Badge>
+                    )}
                   </div>
-                  <div className="p-4 space-y-2">
-                    <h3 className="font-semibold text-foreground leading-snug">
-                      {rec.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {truncateAddress(rec.patientWallet)}
-                    </p>
-                    <div className="flex items-center justify-between pt-1 border-t border-border">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(rec.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="text-xs text-primary font-medium">
-                        View →
-                      </span>
-                    </div>
+                  <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs">
+                    {rec.status === "minted" ? "Minted ✓" : "Pending"}
+                  </Badge>
+                </div>
+                <div className="p-4 space-y-2">
+                  <h3 className="font-semibold text-foreground leading-snug">
+                    {rec.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {truncateAddress(rec.ownerWallet)}
+                  </p>
+                  <div className="flex items-center justify-between pt-1 border-t border-border">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(rec.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-xs text-primary font-medium">
+                      View →
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

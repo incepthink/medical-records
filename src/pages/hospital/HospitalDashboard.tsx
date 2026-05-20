@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -16,24 +15,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollections } from "@/context/CollectionsContext";
 import { useAuth } from "@/context/AuthContext";
-import { truncateAddress, simulateDelay } from "@/mock/data";
+import { useViewerDocuments } from "@/hooks/useViewers";
+import { truncateAddress } from "@/mock/data";
 
 const HospitalDashboard = () => {
-  const { sharedRecordsForHospital } = useCollections();
   const { user } = useAuth();
+  const { data: shares, isLoading } = useViewerDocuments();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    simulateDelay(600).then(() => setLoading(false));
-  }, []);
+  const shareList = shares ?? [];
 
-  const verifiedCount = sharedRecordsForHospital.filter((r) => r.signed).length;
-  const pendingCount = sharedRecordsForHospital.filter((r) => !r.signed).length;
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <Skeleton className="h-48 rounded-2xl" />
@@ -53,12 +46,19 @@ const HospitalDashboard = () => {
   }
 
   const initials = user?.name
-    ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
     : "HO";
+
+  const uniqueCategories = new Set(shareList.map((s) => s.document.category))
+    .size;
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-background to-success/5 border border-border p-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-32 translate-x-32 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full translate-y-24 -translate-x-24 blur-3xl pointer-events-none" />
@@ -77,12 +77,13 @@ const HospitalDashboard = () => {
             </h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
               Patients have shared these medical records with your institution.
-              Verify your identity with your wallet to access full record details.
+              Verify your identity with your wallet to access full record
+              details.
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <Badge variant="secondary" className="gap-1.5 text-xs">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                Base Sepolia
+                Midnight Preprod
               </Badge>
               <Badge variant="secondary" className="gap-1.5 text-xs">
                 <ShieldCheck className="h-3 w-3" /> Secure Access
@@ -92,7 +93,6 @@ const HospitalDashboard = () => {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-card border border-border border-l-4 border-l-primary shadow-sm rounded-xl">
           <CardContent className="p-6 flex items-center gap-4">
@@ -102,7 +102,7 @@ const HospitalDashboard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Records Shared</p>
               <p className="text-3xl font-extrabold text-foreground">
-                {sharedRecordsForHospital.length}
+                {shareList.length}
               </p>
             </div>
           </CardContent>
@@ -113,8 +113,10 @@ const HospitalDashboard = () => {
               <CheckCircle2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Verified</p>
-              <p className="text-3xl font-extrabold text-foreground">{verifiedCount}</p>
+              <p className="text-sm text-muted-foreground">Categories</p>
+              <p className="text-3xl font-extrabold text-foreground">
+                {uniqueCategories}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -124,14 +126,15 @@ const HospitalDashboard = () => {
               <Clock className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pending Verification</p>
-              <p className="text-3xl font-extrabold text-foreground">{pendingCount}</p>
+              <p className="text-sm text-muted-foreground">Access Status</p>
+              <p className="text-3xl font-extrabold text-foreground">
+                {shareList.length > 0 ? "Active" : "—"}
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* How It Works */}
       <Card className="bg-card border border-border shadow-sm rounded-xl">
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold text-foreground mb-5">
@@ -142,28 +145,22 @@ const HospitalDashboard = () => {
               {
                 step: 1,
                 icon: Share2,
-                iconBg: "bg-primary/10",
-                iconColor: "text-primary",
                 title: "Patient Shares",
                 desc: "A patient grants your hospital access to their medical NFT record from their dashboard.",
               },
               {
                 step: 2,
                 icon: Building2,
-                iconBg: "bg-primary/10",
-                iconColor: "text-primary",
                 title: "You Receive",
                 desc: "The record appears here automatically. You can see basic info without verification.",
               },
               {
                 step: 3,
                 icon: ShieldCheck,
-                iconBg: "bg-primary/10",
-                iconColor: "text-primary",
                 title: "Verify & View",
                 desc: "Connect your wallet and sign a challenge to prove identity and unlock the full record.",
               },
-            ].map(({ step, icon: Icon, iconBg, iconColor, title, desc }) => (
+            ].map(({ step, icon: Icon, title, desc }) => (
               <div key={step} className="flex gap-4">
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
@@ -174,12 +171,12 @@ const HospitalDashboard = () => {
                   )}
                 </div>
                 <div className="pb-2">
-                  <div
-                    className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center mb-2`}
-                  >
-                    <Icon className={`h-4 w-4 ${iconColor}`} />
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground">{title}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {title}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                     {desc}
                   </p>
@@ -190,21 +187,19 @@ const HospitalDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Records Grid */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground">
             Shared Records
           </h2>
-          {sharedRecordsForHospital.length > 0 && (
+          {shareList.length > 0 && (
             <Badge variant="secondary">
-              {sharedRecordsForHospital.length} record
-              {sharedRecordsForHospital.length !== 1 ? "s" : ""}
+              {shareList.length} record{shareList.length !== 1 ? "s" : ""}
             </Badge>
           )}
         </div>
 
-        {sharedRecordsForHospital.length === 0 ? (
+        {shareList.length === 0 ? (
           <Card className="bg-card border border-border shadow-sm rounded-xl">
             <CardContent className="p-16 flex flex-col items-center text-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
@@ -223,71 +218,69 @@ const HospitalDashboard = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sharedRecordsForHospital.map((rec, index) => (
-              <Card
-                key={rec.recordId}
-                className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer overflow-hidden"
-                style={{
-                  animationDelay: `${index * 0.08}s`,
-                  borderLeft: `3px solid hsl(var(--primary))`,
-                }}
-                onClick={() => navigate(`/hospital/record/${rec.recordId}`)}
-              >
-                <CardContent className="p-5 space-y-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-foreground leading-tight">
-                      {rec.title}
-                    </h3>
-                    <Badge
-                      className={`shrink-0 text-xs gap-1 bg-primary text-primary-foreground`}
+            {shareList.map((share, index) => {
+              const doc = share.document;
+              return (
+                <Card
+                  key={share.id}
+                  className="bg-card border border-border shadow-sm rounded-xl hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer overflow-hidden"
+                  style={{
+                    animationDelay: `${index * 0.08}s`,
+                    borderLeft: `3px solid hsl(var(--primary))`,
+                  }}
+                  onClick={() => navigate(`/hospital/record/${doc.id}`)}
+                >
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-foreground leading-tight">
+                        {doc.title}
+                      </h3>
+                      <Badge className="shrink-0 text-xs gap-1 bg-primary text-primary-foreground">
+                        <Clock className="h-2.5 w-2.5" /> Pending
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <User className="h-3 w-3 text-primary" />
+                        </div>
+                        <span className="font-mono">
+                          {truncateAddress(doc.ownerWallet)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <Stethoscope className="h-3 w-3 text-primary" />
+                        </div>
+                        <span>{doc.creator?.name ?? "Unknown"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <Calendar className="h-3 w-3 text-primary" />
+                        </div>
+                        <span>
+                          Shared{" "}
+                          {new Date(share.grantedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      className="w-full gap-1.5"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/hospital/record/${doc.id}`);
+                      }}
                     >
-                      {rec.signed ? (
-                        <>
-                          <CheckCircle2 className="h-2.5 w-2.5" /> Verified
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="h-2.5 w-2.5" /> Pending
-                        </>
-                      )}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                        <User className="h-3 w-3 text-primary" />
-                      </div>
-                      <span className="font-mono">{truncateAddress(rec.patientWallet)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                        <Stethoscope className="h-3 w-3 text-primary" />
-                      </div>
-                      <span>{rec.doctorName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                        <Calendar className="h-3 w-3 text-primary" />
-                      </div>
-                      <span>{new Date(rec.sharedAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    className="w-full gap-1.5"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/hospital/record/${rec.recordId}`);
-                    }}
-                  >
-                    {rec.signed ? "View Record" : "View & Verify"}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                      View &amp; Verify
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

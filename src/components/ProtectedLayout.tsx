@@ -7,12 +7,11 @@ interface Props {
   allowedPersona: Persona;
 }
 
-const ProtectedLayout: React.FC<Props> = ({ allowedPersona }) => {
-  const { persona } = useAuth();
+const ProtectedLayout: React.FC<Props> = (_props) => {
+  const { persona, isInitializing } = useAuth();
 
+  if (isInitializing) return null;
   if (!persona) return <Navigate to="/" replace />;
-  if (persona !== allowedPersona)
-    return <Navigate to={`/${persona}/dashboard`} replace />;
 
   return (
     <div className="min-h-screen bg-background">
