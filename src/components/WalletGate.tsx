@@ -36,7 +36,7 @@ export function WalletGate() {
           <MidnightConnectButton walletType="lace" />
         </div>
 
-        <div className="border-t border-border pt-6 flex flex-col gap-3">
+        {/* <div className="border-t border-border pt-6 flex flex-col gap-3">
           {trustFeatures.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-3 text-left">
               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -45,7 +45,7 @@ export function WalletGate() {
               <span className="text-xs text-muted-foreground">{label}</span>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
     </div>
   );
