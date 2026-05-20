@@ -15,12 +15,7 @@ import {
   ShieldCheck,
   Clock,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +65,7 @@ const PatientRecordDetail = () => {
   const revokeAccess = useRevokeAccess();
   const { connectedAPI } = useMidnightWalletContext();
   const [selectedHospital, setSelectedHospital] = useState("");
+  const [granting, setGranting] = useState(false);
 
   if (isLoading) {
     return (
@@ -105,54 +101,73 @@ const PatientRecordDetail = () => {
     if (!selectedHospital) return;
     const hospital = hospitalList?.find((h) => h.id === selectedHospital);
     if (!hospital) return;
+    setGranting(true);
     try {
+      let txId: string | undefined;
+      console.log("[handleGrant] on-chain conditions:", {
+        hasConnectedAPI: !!connectedAPI,
+        onchainTokenId: record.onchainTokenId,
+        hospitalWallet: hospital.wallet,
+      });
       if (connectedAPI && record.onchainTokenId && hospital.wallet) {
-        const tokenId = BigInt(record.onchainTokenId);
-        const viewerPk = decodeShieldedAddress(hospital.wallet);
-        const { txId } = await callGrantAccess(connectedAPI, tokenId, viewerPk);
-        await grantAccess.mutateAsync({
-          documentId: record.id,
-          viewerId: selectedHospital,
-        });
-        toast.success(
-          `Access granted to ${hospital.name} · tx ${txId.slice(0, 10)}…`,
-        );
-      } else {
-        await grantAccess.mutateAsync({
-          documentId: record.id,
-          viewerId: selectedHospital,
-        });
-        toast.success(`Access granted to ${hospital.name}`);
+        try {
+          const tokenId = BigInt(record.onchainTokenId);
+          const viewerPk = decodeShieldedAddress(hospital.wallet);
+          const result = await callGrantAccess(connectedAPI, tokenId, viewerPk);
+          console.log(result);
+
+          txId = result.txId;
+        } catch (err) {
+          console.log(
+            "On-chain grantAccess failed, continuing with backend:",
+            err,
+          );
+        }
       }
+      await grantAccess.mutateAsync({
+        documentId: record.id,
+        viewerId: selectedHospital,
+      });
+      toast.success(
+        txId
+          ? `Access granted to ${hospital.name} · tx ${txId.slice(0, 10)}…`
+          : `Access granted to ${hospital.name}`,
+      );
       setSelectedHospital("");
     } catch {
       toast.error("Failed to grant access");
+    } finally {
+      setGranting(false);
     }
   };
 
   const handleRevoke = async (viewerId: string, viewerName: string) => {
     const sharedEntry = sharedList.find((s) => s.viewerId === viewerId);
     try {
-      if (
-        connectedAPI &&
-        record.onchainTokenId &&
-        sharedEntry?.viewer.wallet
-      ) {
-        const tokenId = BigInt(record.onchainTokenId);
-        const viewerPk = decodeShieldedAddress(sharedEntry.viewer.wallet);
-        const { txId } = await callRevokeAccess(
-          connectedAPI,
-          tokenId,
-          viewerPk,
-        );
-        await revokeAccess.mutateAsync({ documentId: record.id, viewerId });
-        toast.success(
-          `Access revoked for ${viewerName} · tx ${txId.slice(0, 10)}…`,
-        );
-      } else {
-        await revokeAccess.mutateAsync({ documentId: record.id, viewerId });
-        toast.success(`Access revoked for ${viewerName}`);
+      let txId: string | undefined;
+      if (connectedAPI && record.onchainTokenId && sharedEntry?.viewer.wallet) {
+        try {
+          const tokenId = BigInt(record.onchainTokenId);
+          const viewerPk = decodeShieldedAddress(sharedEntry.viewer.wallet);
+          const result = await callRevokeAccess(
+            connectedAPI,
+            tokenId,
+            viewerPk,
+          );
+          txId = result.txId;
+        } catch (err) {
+          console.log(
+            "On-chain revokeAccess failed, continuing with backend:",
+            err,
+          );
+        }
       }
+      await revokeAccess.mutateAsync({ documentId: record.id, viewerId });
+      toast.success(
+        txId
+          ? `Access revoked for ${viewerName} · tx ${txId.slice(0, 10)}…`
+          : `Access revoked for ${viewerName}`,
+      );
     } catch {
       toast.error("Failed to revoke access");
     }
@@ -253,18 +268,20 @@ const PatientRecordDetail = () => {
                 {
                   icon: Hash,
                   label: "Token ID",
-                  value:
-                    record.tokenId !== null ? `#${record.tokenId}` : "—",
+                  value: record.tokenId !== null ? `#${record.tokenId}` : "—",
                   mono: true,
                 },
                 {
                   icon: CalendarDays,
                   label: "Issued on",
-                  value: new Date(record.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  }),
+                  value: new Date(record.createdAt).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  ),
                   mono: false,
                 },
                 {
@@ -279,7 +296,9 @@ const PatientRecordDetail = () => {
                     <item.icon className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.label}
+                    </p>
                     <p
                       className={`text-sm font-medium text-foreground ${item.mono ? "font-mono" : ""}`}
                     >
@@ -343,8 +362,7 @@ const PatientRecordDetail = () => {
                             {s.viewer.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Granted{" "}
-                            {new Date(s.grantedAt).toLocaleDateString()}
+                            Granted {new Date(s.grantedAt).toLocaleDateString()}
                           </p>
                         </div>
                         <AlertDialog>
@@ -357,8 +375,8 @@ const PatientRecordDetail = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Revoke Access</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to revoke{" "}
-                                {s.viewer.name}'s access to this record?
+                                Are you sure you want to revoke {s.viewer.name}
+                                's access to this record?
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -419,11 +437,15 @@ const PatientRecordDetail = () => {
                     </Select>
                     <Button
                       onClick={handleGrant}
-                      disabled={!selectedHospital || grantAccess.isPending}
+                      disabled={
+                        !selectedHospital || granting || grantAccess.isPending
+                      }
                       className="w-full"
                     >
                       <Shield className="h-4 w-4 mr-2" />
-                      {grantAccess.isPending ? "Granting..." : "Grant Access"}
+                      {granting || grantAccess.isPending
+                        ? "Granting..."
+                        : "Grant Access"}
                     </Button>
                   </>
                 )}

@@ -14,6 +14,7 @@ import {
   Plus,
   ChevronsUpDown,
   Check,
+  Clipboard,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,10 +53,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import {
-  useCollections,
-  useCreateCollection,
-} from "@/hooks/useCollections";
+import { useCollections, useCreateCollection } from "@/hooks/useCollections";
 import { useCreateDocument, useMintDocument } from "@/hooks/useDocuments";
 import type { CreateDocumentPayload } from "@/api/documents";
 import { useMidnightWalletContext } from "@/context/MidnightWalletContext";
@@ -63,11 +61,16 @@ import {
   callCreateCollection,
   callMintDocument,
   decodeShieldedAddress,
+  resolveCoinPublicKey,
   CONTRACT_ADDRESS,
 } from "@/lib/midnight/contractApi";
 import { axiosInstance, axiosInstanceImage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
-import { truncateAddress, type DocumentCategory, type FileType } from "@/mock/data";
+import {
+  truncateAddress,
+  type DocumentCategory,
+  type FileType,
+} from "@/mock/data";
 import { toast } from "sonner";
 
 function deriveFileType(file: File): FileType {
@@ -98,6 +101,7 @@ const CreateRecord = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [minting, setMinting] = useState(false);
+  const [mintingStage, setMintingStage] = useState(0);
   const [mintedTxHash, setMintedTxHash] = useState<string | null>(null);
   const [newColName, setNewColName] = useState("");
   const [newColDesc, setNewColDesc] = useState("");
@@ -178,6 +182,7 @@ const CreateRecord = () => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setMinting(true);
+    setMintingStage(0);
     try {
       let uploadedImageUrl: string | undefined;
       if (file) {
@@ -204,10 +209,9 @@ const CreateRecord = () => {
 
       const doc = await createDocument.mutateAsync(payload);
 
-      let txHash =
-        "0x" + Math.random().toString(16).slice(2).padEnd(64, "0");
+      let txHash = "0x" + Math.random().toString(16).slice(2).padEnd(64, "0");
       const contractAddress = CONTRACT_ADDRESS;
-      const tokenId = 0;
+      const tokenId = Math.floor(1000 + Math.random() * 9000);
       let onchainTokenId: string | undefined;
 
       if (connectedAPI && address) {
@@ -225,9 +229,8 @@ const CreateRecord = () => {
           );
           const metaHash = new Uint8Array(metaHashBuf);
 
-          const { shieldedAddress: creatorShieldedAddr } =
-            await connectedAPI.getShieldedAddresses();
-          const creatorPk = decodeShieldedAddress(creatorShieldedAddr);
+          const walletAddresses = await connectedAPI.getShieldedAddresses();
+          const creatorPk = resolveCoinPublicKey(walletAddresses);
           const ownerPk = decodeShieldedAddress(patientWallet);
 
           const selectedCollection = collections?.find(
@@ -243,7 +246,7 @@ const CreateRecord = () => {
             ownerPk,
             creatorPk,
             onchainCollectionId,
-          });
+          }, setMintingStage);
 
           txHash = result.txId;
           onchainTokenId = result.onchainTokenId.toString();
@@ -276,9 +279,8 @@ const CreateRecord = () => {
       let onchainCollectionId: string | undefined;
       if (connectedAPI && address) {
         try {
-          const { shieldedAddress: creatorShieldedAddr } =
-            await connectedAPI.getShieldedAddresses();
-          const creatorPk = decodeShieldedAddress(creatorShieldedAddr);
+          const walletAddresses = await connectedAPI.getShieldedAddresses();
+          const creatorPk = resolveCoinPublicKey(walletAddresses);
           const result = await callCreateCollection(connectedAPI, creatorPk);
           onchainCollectionId = result.onchainCollectionId.toString();
           toast.info(
@@ -313,7 +315,9 @@ const CreateRecord = () => {
           <CardContent className="p-12 flex flex-col items-center text-center gap-6">
             <div className="relative w-20 h-20">
               <div className="absolute inset-0 rounded-full bg-primary/10" />
-              <Loader2 className="h-12 w-12 text-primary animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              </div>
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">
@@ -328,7 +332,9 @@ const CreateRecord = () => {
                 <div key={step} className="flex flex-col items-center gap-1">
                   <div
                     className={`w-2 h-2 rounded-full ${
-                      i === 0
+                      i < mintingStage
+                        ? "bg-primary/40"
+                        : i === mintingStage
                         ? "bg-primary animate-pulse"
                         : "bg-muted-foreground/30"
                     }`}
@@ -356,8 +362,8 @@ const CreateRecord = () => {
                 Record Minted Successfully!
               </h2>
               <p className="text-muted-foreground mt-1 text-sm">
-                The record has been anchored on Midnight Preprod and assigned
-                to the patient.
+                The record has been anchored on Midnight Preprod and assigned to
+                the patient.
               </p>
               <p className="text-sm text-primary font-mono break-all mt-2">
                 Tx: {mintedTxHash.slice(0, 20)}...{mintedTxHash.slice(-8)}
@@ -564,24 +570,44 @@ const CreateRecord = () => {
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-1.5">
-                      <Label htmlFor="wallet">Patient Wallet Address</Label>
+                      <Label htmlFor="wallet">
+                        Patient Shielded Wallet Address
+                      </Label>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          The patient's Midnight unshielded address on the
-                          Preprod network
+                          The patient's Midnight Shielded address on the Preprod
+                          network
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <Input
-                      id="wallet"
-                      placeholder="mn1..."
-                      value={patientWallet}
-                      onChange={(e) => setPatientWallet(e.target.value)}
-                      className="font-mono"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="wallet"
+                        placeholder="mn1..."
+                        value={patientWallet}
+                        onChange={(e) => setPatientWallet(e.target.value)}
+                        className="font-mono"
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            disabled={!address}
+                            onClick={() => setPatientWallet(address!)}
+                          >
+                            <Clipboard className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Use my connected wallet address
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     {errors.patientWallet && (
                       <p className="text-sm text-destructive">
                         {errors.patientWallet}

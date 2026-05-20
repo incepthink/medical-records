@@ -29,6 +29,7 @@ import { useMidnightWalletContext } from "@/context/MidnightWalletContext";
 import {
   callCreateCollection,
   decodeShieldedAddress,
+  hexToBytes,
 } from "@/lib/midnight/contractApi";
 import { toast } from "sonner";
 
@@ -49,9 +50,10 @@ const DoctorCollections = () => {
       let onchainCollectionId: string | undefined;
       if (connectedAPI && address) {
         try {
-          const { shieldedAddress: creatorShieldedAddr } =
-            await connectedAPI.getShieldedAddresses();
-          const creatorPk = decodeShieldedAddress(creatorShieldedAddr);
+          const walletAddresses = await connectedAPI.getShieldedAddresses();
+          const creatorPk = walletAddresses.shieldedCoinPublicKey
+            ? hexToBytes(walletAddresses.shieldedCoinPublicKey)
+            : decodeShieldedAddress(walletAddresses.shieldedAddress);
           const result = await callCreateCollection(connectedAPI, creatorPk);
           onchainCollectionId = result.onchainCollectionId.toString();
           toast.info(

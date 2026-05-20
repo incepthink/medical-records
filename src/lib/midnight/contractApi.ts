@@ -31,10 +31,7 @@ import {
 import { bech32m } from "@scure/base";
 
 import { Contract } from "@/lib/managed/contract";
-import type {
-  MidnightConnectedAPI,
-  MidnightNetwork,
-} from "./types";
+import type { MidnightConnectedAPI, MidnightNetwork } from "./types";
 
 // ZK artifact URL imports — Vite serves these as hashed static assets
 import createCollectionZkir from "@/lib/managed/zkir/createCollection.bzkir?url";
@@ -106,8 +103,29 @@ const CIRCUIT_KEY = {
  * `shieldedCoinPublicKey` directly (a string) with `encodeCoinPublicKey()` instead.
  */
 export function decodeShieldedAddress(addr: string): Uint8Array {
-  const { words } = bech32m.decode(addr as `${string}1${string}`, 1000);
-  return new Uint8Array(bech32m.fromWords(words)).slice(-32);
+  try {
+    const { words } = bech32m.decode(addr as `${string}1${string}`, 1000);
+    return new Uint8Array(bech32m.fromWords(words)).slice(-32);
+  } catch {
+    // Newer wallet versions may return raw hex (strip any non-hex prefix like 'm')
+    const hex = addr.replace(/^[^0-9a-fA-F]*/, "");
+    if (hex.length === 64) return hexToBytes(hex);
+    throw new Error(`Cannot decode shielded address: ${addr.slice(0, 20)}…`);
+  }
+}
+
+/**
+ * Normalises a wallet addresses result to a raw 32-byte coin public key.
+ * Handles SDK v4+ (64-char hex shieldedCoinPublicKey) and older wallet
+ * versions that return a bech32m shieldedAddress.
+ */
+export function resolveCoinPublicKey(addresses: {
+  shieldedCoinPublicKey?: string;
+  shieldedAddress?: string;
+}): Uint8Array {
+  const raw = addresses.shieldedCoinPublicKey ?? addresses.shieldedAddress ?? "";
+  if (/^[0-9a-fA-F]{64}$/.test(raw)) return hexToBytes(raw);
+  return decodeShieldedAddress(raw);
 }
 
 // ─── Utility: hex helpers ─────────────────────────────────────────────────────
@@ -203,12 +221,17 @@ async function buildCircuitContext(connectedAPI: MidnightConnectedAPI) {
     connectedAPI.getConfiguration(),
     connectedAPI.getShieldedAddresses(),
   ]);
+  console.log("1", config, addresses);
+
   const contractState = await fetchContractState(config.indexerUri);
+  console.log("2", contractState);
   // shieldedCoinPublicKey is the raw 32-byte hex coin pk (standard SDK v4+).
   // Fall back to bech32m-decoding shieldedAddress for older wallet versions.
-  const coinPkHex =
-    addresses.shieldedCoinPublicKey ??
-    bytesToHex(decodeShieldedAddress(addresses.shieldedAddress));
+  const rawPk = addresses.shieldedCoinPublicKey ?? addresses.shieldedAddress;
+  const coinPkHex = /^[0-9a-fA-F]{64}$/.test(rawPk)
+    ? rawPk
+    : bytesToHex(decodeShieldedAddress(rawPk));
+  console.log("3", coinPkHex);
   return createCircuitContext(
     CONTRACT_ADDRESS, // ContractAddress (string)
     coinPkHex, // CoinPublicKey (hex-encoded 32-byte coin pk)
@@ -237,6 +260,7 @@ async function proveBalanceSubmit(
   proofData: ProofData,
   gasCost: RunningCost,
   circuitKeyLocation: string,
+  onProgress?: (stage: number) => void,
 ): Promise<string> {
   console.log(
     "[proveBalanceSubmit] starting — circuitKeyLocation:",
@@ -334,6 +358,7 @@ async function proveBalanceSubmit(
     // Transaction.prove() calls provingProvider.prove(preimage, key) internally,
     // gets the raw proof bytes from the local proof server, and embeds them into
     // the transaction — returning Transaction<SignatureEnabled,Proof,PreBinding>.
+    onProgress?.(0);
     const costModel = CostModel.initialCostModel();
     const unboundTx = await unprovenTx.prove(provingProvider, costModel);
 
@@ -373,44 +398,67 @@ async function proveBalanceSubmit(
     // The previous custom base64 format was not hex, so the wallet decoded it to all-zero bytes
     // and the ASCII header was empty → "got: ''".
     const serializedHex = bytesToHex(rawBytes);
-    console.log("[proveBalanceSubmit] serializedHex length:", serializedHex.length);
-    console.log("[proveBalanceSubmit] serializedHex prefix (40):", serializedHex.slice(0, 40));
+    console.log(
+      "[proveBalanceSubmit] serializedHex length:",
+      serializedHex.length,
+    );
+    console.log(
+      "[proveBalanceSubmit] serializedHex prefix (40):",
+      serializedHex.slice(0, 40),
+    );
 
     // ── Step 6: balance ───────────────────────────────────────────────────────
     // payFees: true is required — the wallet will add fee coins to cover gas.
-    const balanceResult = await (connectedAPI as any).balanceUnsealedTransaction(
-      serializedHex,
-      { payFees: true },
-    );
+    onProgress?.(1);
+    const balanceResult = await (
+      connectedAPI as any
+    ).balanceUnsealedTransaction(serializedHex, { payFees: true });
     console.log(
-      "[proveBalanceSubmit] balanceResult type:", typeof balanceResult,
-      "has .tx:", 'tx' in Object(balanceResult),
+      "[proveBalanceSubmit] balanceResult type:",
+      typeof balanceResult,
+      "has .tx:",
+      "tx" in Object(balanceResult),
     );
 
     // Wallet returns { tx: hexString }; support direct string return as fallback.
-    const balancedHex: string = typeof balanceResult === 'string'
-      ? balanceResult
-      : (balanceResult as any).tx;
-    console.log("[proveBalanceSubmit] balancedHex length:", balancedHex?.length);
-
-    // ── Step 7: deserialize balanced tx to extract the on-chain identifier ────
-    const balancedTx = Transaction.deserialize(
-      "signature" as any,
-      "proof" as any,
-      "binding" as any,
-      hexToBytes(balancedHex),
-    );
+    const balancedHex: string =
+      typeof balanceResult === "string"
+        ? balanceResult
+        : (balanceResult as any).tx;
     console.log(
-      "[proveBalanceSubmit] balancedTx constructor:", balancedTx?.constructor?.name,
+      "[proveBalanceSubmit] balancedHex length:",
+      balancedHex?.length,
     );
+
+    // ── Step 7: attempt txId extraction (best-effort) ────────────────────────
+    // Transaction.deserialize markers are type-level hints; we use them only
+    // to call identifiers(). Submit the original balancedHex regardless.
+    let txId = balancedHex.slice(0, 64);
+    try {
+      const balancedTx = Transaction.deserialize(
+        "signature" as any,
+        "proof" as any,
+        "binding" as any,
+        hexToBytes(balancedHex),
+      );
+      const [id] = (balancedTx as any).identifiers();
+      if (id) txId = String(id);
+    } catch (e) {
+      console.warn(
+        "[proveBalanceSubmit] identifiers() extraction failed, using hex prefix:",
+        e,
+      );
+    }
 
     // ── Step 8: submit ────────────────────────────────────────────────────────
-    await (connectedAPI as any).submitTransaction(bytesToHex(balancedTx.serialize()));
+    // Submit balancedHex directly — re-serializing a deserialized tx produces
+    // different bytes and causes Custom error: 180 in the wallet.
+    onProgress?.(2);
+    await (connectedAPI as any).submitTransaction(balancedHex);
     console.log("[proveBalanceSubmit] submitTransaction() complete");
 
-    const [txId] = (balancedTx as any).identifiers();
-    console.log("[proveBalanceSubmit] done, txId:", String(txId));
-    return String(txId ?? balancedHex.slice(0, 64));
+    console.log("[proveBalanceSubmit] done, txId:", txId);
+    return txId;
   } catch (err) {
     console.error("[proveBalanceSubmit] ERROR:", err);
     throw err;
@@ -455,11 +503,17 @@ export async function callCreateCollection(
   creatorPk: Uint8Array,
 ): Promise<{ onchainCollectionId: bigint; txId: string }> {
   const contract = new Contract(makeWitnesses());
+  console.log("context", contract);
+
   const ctx = await buildCircuitContext(connectedAPI);
+  console.log("cx", ctx);
+
   const { result, proofData, gasCost } = contract.circuits.createCollection(
     ctx,
     creatorPk,
   );
+  console.log("result", result);
+
   const txId = await proveBalanceSubmit(
     connectedAPI,
     proofData,
@@ -487,6 +541,7 @@ export async function callMintDocument(
     creatorPk: Uint8Array;
     onchainCollectionId: bigint;
   },
+  onProgress?: (stage: number) => void,
 ): Promise<{ onchainTokenId: bigint; txId: string }> {
   const contract = new Contract(makeWitnesses());
   console.log("contrasct", contract);
@@ -510,6 +565,7 @@ export async function callMintDocument(
     proofData,
     gasCost,
     CIRCUIT_KEY.mintDocument,
+    onProgress,
   );
   console.log("mintDocument txId", txId);
   return { onchainTokenId: result, txId };

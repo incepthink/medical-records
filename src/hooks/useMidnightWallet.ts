@@ -1,9 +1,7 @@
-// Midnight Wallet — React hook (mock, mirrors tokenized-data behavior).
-// Returns a simulated connected state with a dummy shielded address.
-// Real wallet APIs are bypassed since vault-med is a demo app.
-
 import { useState, useEffect, useCallback } from "react";
 import type { MidnightConnectedAPI, MidnightNetwork } from "@/lib/midnight/types";
+import { detectMidnightWallet, detectLaceWallet } from "@/lib/midnight/detectWallet";
+import { httpClientProvingProvider } from "@midnight-ntwrk/midnight-js-http-client-proof-provider";
 
 export interface MidnightWalletState {
   isOneamInstalled: boolean;
@@ -22,45 +20,100 @@ export interface MidnightWalletState {
 }
 
 const NETWORK: MidnightNetwork = "preprod";
-const MOCK_ONEAM_ADDRESS = "mn1q9rvzfk3p8xw4c6y2l0m5d7n3j8e4t2h6s1afq";
-const MOCK_LACE_ADDRESS = "mn1q7kpxz2r4w9v8c3n0l6m5d2j7e8t4h1s9afq3";
 
 export function useMidnightWallet(): MidnightWalletState {
+  const [isOneamInstalled, setIsOneamInstalled] = useState(false);
+  const [isLaceInstalled, setIsLaceInstalled] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [connectedWallet, setConnectedWallet] = useState<"oneam" | "lace" | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [network, setNetwork] = useState<MidnightNetwork | null>(null);
+  const [connectedAPI, setConnectedAPI] = useState<MidnightConnectedAPI | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsConnecting(false);
+    let cancelled = false;
+    async function detect() {
+      setIsConnecting(true);
+      const [oneam] = await Promise.all([
+        detectMidnightWallet(),
+      ]);
+      const lace = detectLaceWallet();
+      if (cancelled) return;
+      setIsOneamInstalled(oneam !== null);
+      setIsLaceInstalled(lace !== null);
+      setIsConnecting(false);
+    }
+    detect();
+    return () => { cancelled = true; };
   }, []);
 
   const connect = useCallback(async () => {
     setIsConnecting(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 800));
-    setAddress(MOCK_ONEAM_ADDRESS);
-    setNetwork(NETWORK);
-    setConnectedWallet("oneam");
-    setIsConnected(true);
-    setIsConnecting(false);
+    try {
+      const walletAPI = await detectMidnightWallet();
+      if (!walletAPI) {
+        setError("1AM wallet not found. Please install the extension.");
+        return;
+      }
+      const api = await walletAPI.connect(NETWORK);
+      const { shieldedAddress } = await api.getShieldedAddresses();
+      const tagged = Object.assign(api, { walletType: "oneam" as const });
+      setConnectedAPI(tagged as unknown as MidnightConnectedAPI);
+      setAddress(shieldedAddress);
+      setNetwork(NETWORK);
+      setConnectedWallet("oneam");
+      setIsConnected(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to connect 1AM wallet");
+    } finally {
+      setIsConnecting(false);
+    }
   }, []);
 
   const connectLace = useCallback(async () => {
     setIsConnecting(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 800));
-    setAddress(MOCK_LACE_ADDRESS);
-    setNetwork(NETWORK);
-    setConnectedWallet("lace");
-    setIsConnected(true);
-    setIsConnecting(false);
+    try {
+      const walletObj = detectLaceWallet();
+      if (!walletObj) {
+        setError("Lace wallet not found. Please install the extension.");
+        return;
+      }
+      const api = await walletObj.connect(NETWORK);
+      const { shieldedAddress } = await api.getShieldedAddresses();
+
+      // Lace does not yet implement getProvingProvider (confirmed 2026-05-11 by Midnight moderator).
+      // Patch it to delegate to an HTTP proof server using proverServerUri from wallet config.
+      if (typeof (api as any).getProvingProvider !== "function") {
+        const { proverServerUri } = await api.getConfiguration();
+        (api as any).getProvingProvider = (keyMaterialProvider: any) =>
+          Promise.resolve(
+            httpClientProvingProvider(
+              proverServerUri || "http://localhost:6300",
+              keyMaterialProvider
+            )
+          );
+      }
+
+      const tagged = Object.assign(api, { walletType: "lace" as const });
+      setConnectedAPI(tagged as unknown as MidnightConnectedAPI);
+      setAddress(shieldedAddress);
+      setNetwork(NETWORK);
+      setConnectedWallet("lace");
+      setIsConnected(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to connect Lace wallet");
+    } finally {
+      setIsConnecting(false);
+    }
   }, []);
 
   const disconnect = useCallback(() => {
     setIsConnected(false);
+    setConnectedAPI(null);
     setAddress(null);
     setNetwork(null);
     setConnectedWallet(null);
@@ -68,15 +121,15 @@ export function useMidnightWallet(): MidnightWalletState {
   }, []);
 
   return {
-    isOneamInstalled: true,
-    isLaceInstalled: true,
-    isInstalled: true,
+    isOneamInstalled,
+    isLaceInstalled,
+    isInstalled: isOneamInstalled || isLaceInstalled,
     isConnected,
     isConnecting,
     connectedWallet,
     address,
     network,
-    connectedAPI: null,
+    connectedAPI,
     error,
     connect,
     connectLace,

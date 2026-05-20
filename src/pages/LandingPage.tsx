@@ -83,7 +83,7 @@ const steps = [
     icon: Stethoscope,
     title: "Doctor Mints",
     description:
-      "A doctor creates a medical record and mints it as an NFT on Base Sepolia, anchoring it permanently to the blockchain.",
+      "A doctor creates a medical record and mints it as an NFT on Midnight Preprod, anchoring it permanently to the blockchain.",
     color: "text-primary",
     bg: "bg-primary/10",
   },
@@ -108,7 +108,7 @@ const steps = [
 ];
 
 const trustFeatures = [
-  { icon: Zap, label: "Immutable on Base Sepolia" },
+  { icon: Zap, label: "Immutable on Midnight Preprod" },
   { icon: Lock, label: "Patient-Controlled Access" },
   { icon: ClipboardList, label: "Cryptographic Audit Trail" },
   { icon: ShieldCheck, label: "NFT-Based Ownership" },
@@ -153,7 +153,7 @@ const LandingPage = () => {
             variant="outline"
             className="mb-5 text-xs font-medium px-3 py-1"
           >
-            Powered by Base Sepolia Blockchain
+            Powered by Midnight Blockchain
           </Badge>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">
             Your medical records.{" "}
